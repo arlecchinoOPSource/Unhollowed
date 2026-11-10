@@ -37,4 +37,4 @@ UNHLW owns the host contract (iframe shim, message protocol, Rust module convent
 
 ## Proposals and unresolved decisions
 
-The embedding model, host contract, source extraction, pinned Core revision, canonical data access, concurrent use, migration and backup design, signing and update distribution require evidence and review. Do not treat them as accepted simply because they appear in an architecture draft. Record alternatives, rationale, consequences, date and owner when decisions are made.
+Specification and architecture baseline: [SPECIFICATION.md](SPECIFICATION.md), [ARCHITECTURE.md](ARCHITECTURE.md). Still open: product name; macOS notarization, Windows signing route and bundle targets (U-36); meaning of projector power for unsaved work and timers; cross-process change notification and conflict policy (U-15); performance budgets; Windows behaviour; branch protection; Ember release v2.0.2 provenance. Record alternatives, rationale, consequences, date and owner when each is decided.
