@@ -26,6 +26,11 @@ Evidence: [AUDIT-U-01.md](AUDIT-U-01.md). Owner: product owner, who delegated th
 
 Host identifier `com.arlecchino.unhlw` (approved name; irreversible after release); modules keep their existing files and folders; the host resolves module folders as siblings of its own data folder and modules accept an injected data directory; verified backup before any module migration; concurrent standalone and host use allowed at the file level with documented staleness until U-15. Evidence, alternatives and risks: [DATA-DECISIONS-U33.md](DATA-DECISIONS-U33.md).
 
+## Accepted in part — U-36 signing, updater and identity (product owner, 2026-11-10)
+
+- **Accepted: no in-app updater for 1.0.** Users install new builds manually from GitHub Releases. Consequence: an installed 1.0 cannot self-update later; adding an updater means one manual install of a newer build.
+- **Still open (U-36 stays open):** Apple Developer Program and macOS notarization, the Windows signing route or unsigned, product name and bundle targets, credential custody details. Recommendations and owner actions: [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md).
+
 ## Proposals and unresolved decisions
 
 The embedding model, host contract, source extraction, pinned Core revision, canonical data access, concurrent use, migration and backup design, signing and update distribution require evidence and review. Do not treat them as accepted simply because they appear in an architecture draft. Record alternatives, rationale, consequences, date and owner when decisions are made.
