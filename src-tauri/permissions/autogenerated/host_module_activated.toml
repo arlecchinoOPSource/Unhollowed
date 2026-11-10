@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-host-module-activated"
+description = "Enables the host_module_activated command without any pre-configured scope."
+commands.allow = ["host_module_activated"]
+
+[[permission]]
+identifier = "deny-host-module-activated"
+description = "Denies the host_module_activated command without any pre-configured scope."
+commands.deny = ["host_module_activated"]
