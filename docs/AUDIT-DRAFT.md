@@ -1,5 +1,7 @@
 # Preliminary architectural audit — 2026-11-10
 
+> Superseded by [AUDIT-U-01.md](AUDIT-U-01.md), which inspected current default-branch heads and the Core source. Kept for history; its cached refs were stale.
+
 This is an incomplete, read-only audit of **locally cached** `origin/main` refs; they may lag GitHub. Re-fetch and verify current default-branch heads, releases, issues and PRs before drawing final conclusions. No build or native behavior was tested.
 
 | Project | Cached main commit | Evidence and observations |
