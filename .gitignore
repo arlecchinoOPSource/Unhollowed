@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+dist/
+target/
+.env
+.env.*
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

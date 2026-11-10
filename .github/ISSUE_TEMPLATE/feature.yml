@@ -1,0 +1,24 @@
+name: Feature
+description: Propose a scoped capability
+title: "Feature: "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and context
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope, exclusions and dependencies
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria and verification
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks, rollback and reviewer
