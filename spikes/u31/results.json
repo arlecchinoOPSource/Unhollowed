@@ -1,0 +1,97 @@
+{
+  "A_single_webview": {
+    "alpha_finish_exit": {
+      "ok": true,
+      "value": "alpha:finish_exit"
+    },
+    "alpha_ping": {
+      "ok": true,
+      "value": "alpha:pong"
+    },
+    "beta_finish_exit": {
+      "ok": true,
+      "value": "beta:finish_exit"
+    },
+    "beta_ping": {
+      "ok": true,
+      "value": "beta:pong"
+    },
+    "module_b_input_receives_key_after_module_a_capture_listener": false,
+    "single_document_theme_after_two_modules": "ember"
+  },
+  "B_child_a": {
+    "origin": "tauri://localhost",
+    "other_finish_exit": {
+      "error": "beta.finish_exit not allowed on window \"multi\", webview \"child-a\", URL: local\n\nallowed on: [webviews: \"child-b\", URL: local], [windows: \"main\", URL: local]\n\nreferenced by: capability: cap-child-b, permission: allow-finish-exit || capability: cap-main, permission: allow-finish-exit",
+      "ok": false
+    },
+    "other_ping": {
+      "error": "beta.ping not allowed on window \"multi\", webview \"child-a\", URL: local\n\nallowed on: [webviews: \"child-b\", URL: local], [windows: \"main\", URL: local]\n\nreferenced by: capability: cap-child-b, permission: allow-ping || capability: cap-main, permission: allow-ping",
+      "ok": false
+    },
+    "own_finish_exit": {
+      "ok": true,
+      "value": "alpha:finish_exit"
+    },
+    "own_ping": {
+      "ok": true,
+      "value": "alpha:pong"
+    },
+    "own_theme": "a",
+    "sees_other_localStorage": "yes"
+  },
+  "B_child_b": {
+    "origin": "tauri://localhost",
+    "other_finish_exit": {
+      "error": "alpha.finish_exit not allowed on window \"multi\", webview \"child-b\", URL: local\n\nallowed on: [webviews: \"child-a\", URL: local], [windows: \"main\", URL: local]\n\nreferenced by: capability: cap-child-a, permission: allow-finish-exit || capability: cap-main, permission: allow-finish-exit",
+      "ok": false
+    },
+    "other_ping": {
+      "error": "alpha.ping not allowed on window \"multi\", webview \"child-b\", URL: local\n\nallowed on: [webviews: \"child-a\", URL: local], [windows: \"main\", URL: local]\n\nreferenced by: capability: cap-child-a, permission: allow-ping || capability: cap-main, permission: allow-ping",
+      "ok": false
+    },
+    "own_finish_exit": {
+      "ok": true,
+      "value": "beta:finish_exit"
+    },
+    "own_ping": {
+      "ok": true,
+      "value": "beta:pong"
+    },
+    "own_theme": "b",
+    "sees_other_localStorage": "yes"
+  },
+  "C_iframe": {
+    "has_own_tauri_internals": false,
+    "iframe_calls_alpha": {
+      "ok": true,
+      "value": "alpha:pong"
+    },
+    "iframe_calls_beta": {
+      "ok": true,
+      "value": "beta:pong"
+    },
+    "iframe_theme": "amber",
+    "parent_same_origin": true,
+    "parent_theme_unchanged_by_iframe": true
+  },
+  "D2_sandboxed_classic": {
+    "broker_alpha_ping": {
+      "ok": true,
+      "value": "alpha:pong"
+    },
+    "broker_beta_ping": {
+      "error": "broker: not in allow-list",
+      "ok": false
+    },
+    "classic_script_executed": true,
+    "fetch_same_dir": "error: Load failed",
+    "localStorage": "SecurityError",
+    "origin": "tauri://localhost",
+    "parent_error": "SecurityError",
+    "parent_internals_reachable": false
+  },
+  "D_module_script_timeout_check": {
+    "note": "reported 5s after load; D_sandboxed_iframe key present only if the module script ran"
+  }
+}

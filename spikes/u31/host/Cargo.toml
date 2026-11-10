@@ -1,0 +1,13 @@
+[package]
+name = "u31-host"
+version = "0.0.0"
+edition = "2024"
+[build-dependencies]
+tauri-build = "2"
+[dependencies]
+tauri = { version = "2.12.5", features = ["unstable"] }
+tauri-plugin-alpha = { path = "../alpha" }
+tauri-plugin-beta = { path = "../beta" }
+serde_json = "1"
+[features]
+custom-protocol = ["tauri/custom-protocol"]
