@@ -31,6 +31,10 @@ Host identifier `com.arlecchino.unhlw` (approved name; irreversible after releas
 - **Accepted: no in-app updater for 1.0.** Users install new builds manually from GitHub Releases. Consequence: an installed 1.0 cannot self-update later; adding an updater means one manual install of a newer build.
 - **Still open (U-36 stays open):** Apple Developer Program and macOS notarization, the Windows signing route or unsigned, product name and bundle targets, credential custody details. Recommendations and owner actions: [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md).
 
+## Recommended, pending product-owner approval — U-35 host contract and Core (2026-11-10)
+
+UNHLW owns the host contract (iframe shim, message protocol, Rust module convention); Core stays UI-only; app frontends are mounted unmodified from relative-base builds; backend extraction stays in the app repositories by separate owner-authorized issues; no Core embeddable mode and no early C-11/C-12; Core pins by SHA verified by a consumer build. Evidence and risks: [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md).
+
 ## Proposals and unresolved decisions
 
 The embedding model, host contract, source extraction, pinned Core revision, canonical data access, concurrent use, migration and backup design, signing and update distribution require evidence and review. Do not treat them as accepted simply because they appear in an architecture draft. Record alternatives, rationale, consequences, date and owner when decisions are made.
