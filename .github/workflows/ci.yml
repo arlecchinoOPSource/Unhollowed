@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege: no job writes to the repository or reads secrets except where stated.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Third-party actions are pinned to full commit SHAs (docs/TESTING.md); the comment names the tag.
+# actions/checkout            v4  11d5960a326750d5838078e36cf38b85af677262
+# actions/setup-node          v4  49933ea5288caeca8642d1e84afbd3f7d6820020
+# dtolnay/rust-toolchain      stable  b725eda525362e7cf34af9a7243cac1e3f01a7ec
+# actions/upload-artifact     v4  ea165f8d65b6e75b540449e92b4886f43607fa02
+
+jobs:
+  # Everything that needs no private repository: types, JS tests, the web build, and the Rust
+  # workspace (fmt, clippy with warnings denied, tests). The Swish crate it depends on is cloned
+  # at the pinned commit without submodules.
+  checks:
+    name: checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - run: npm ci
+      - name: Clone and verify the pinned modules (source only)
+        run: node scripts/build-modules.mjs --source-only
+      - run: npm run check
+
+  # Drives the real Swish UI inside the host with synthetic data. It needs the private Core
+  # repository (Swish's submodule), read through a deploy key kept in the CORE_READ_KEY secret
+  # (docs/CI.md). Secrets are not passed to fork pull requests, and the job is skipped, not failed,
+  # while the secret does not exist.
+  native-selftest:
+    name: native self-test (${{ matrix.os }})
+    needs: checks
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CORE_KEY_SET: ${{ secrets.CORE_READ_KEY != '' }}
+    steps:
+      - name: Skip when Core cannot be read
+        if: env.CORE_KEY_SET != 'true'
+        shell: bash
+        run: echo "::notice::CORE_READ_KEY is not set, so the native self-test was skipped. See docs/CI.md."
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          persist-credentials: false
+      - name: Read the pinned Swish commit
+        if: env.CORE_KEY_SET == 'true'
+        id: pin
+        shell: bash
+        run: echo "sha=$(node -p "require('./modules.json').swish.sha")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          repository: arlecchinoOPSource/Swish
+          ref: ${{ steps.pin.outputs.sha }}
+          path: .modules/swish
+          submodules: recursive
+          ssh-key: ${{ secrets.CORE_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          toolchain: stable
+      - if: env.CORE_KEY_SET == 'true'
+        run: npm ci
+      - name: Build the pinned Swish bundle and the host
+        if: env.CORE_KEY_SET == 'true'
+        run: |
+          npm run build:modules
+          npm run build:web
+          cargo build -p unhollowed --features custom-protocol
+      - name: Native self-test (opens a window, synthetic data)
+        if: env.CORE_KEY_SET == 'true'
+        run: npm run test:native

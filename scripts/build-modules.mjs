@@ -3,6 +3,8 @@
 //   2. refuse the pin unless its manifests agree and equal the pinned version (docs/RELEASE-HYGIENE-U34.md);
 //   3. build the app's own web bundle with a relative base, unmodified;
 //   4. add the host shim as the first script of index.html.
+// `--source-only` stops after step 2 (clone and verify; no private submodule, no bundle), which is all the
+// Rust checks need. If the pinned commit is already checked out, nothing is fetched.
 // Private dependencies (Swish pulls Core as a submodule) need your own GitHub access when cloning.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, cpSync } from 'node:fs';
@@ -28,19 +30,29 @@ export function checkManifests(name, pin, read) {
   return found;
 }
 
-function build(name, pin) {
+function build(name, pin, { sourceOnly = false } = {}) {
   if (!/^[0-9a-f]{40}$/.test(pin.sha)) throw new Error(`${name}: pin must be a full 40-character commit SHA`);
   const source = join(root, '.modules', name);
   if (!existsSync(source)) {
     mkdirSync(dirname(source), { recursive: true });
     run('git', ['clone', '--quiet', pin.repo, source]);
   }
-  run('git', ['fetch', '--quiet', 'origin'], source);
-  run('git', ['checkout', '--quiet', '--force', pin.sha], source);
-  if (pin.submodules) run('git', ['submodule', 'update', '--init', '--recursive', '--quiet'], source);
+  // CI checks the pinned commit out itself (with its own credentials), so only touch the network when needed.
+  if (out('git', ['rev-parse', 'HEAD'], source) !== pin.sha) {
+    run('git', ['fetch', '--quiet', 'origin'], source);
+    run('git', ['checkout', '--quiet', '--force', pin.sha], source);
+  }
   const head = out('git', ['rev-parse', 'HEAD'], source);
   if (head !== pin.sha) throw new Error(`${name}: checked out ${head}, expected ${pin.sha}`);
   const manifests = checkManifests(name, pin, file => readFileSync(join(source, file), 'utf8'));
+  if (sourceOnly) {
+    // Enough for the Rust crates that depend on the module's data code; no private dependencies are fetched.
+    console.log(`verified ${name} ${pin.version} (${head.slice(0, 7)}), source only`);
+    return;
+  }
+  if (pin.submodules && out('git', ['submodule', 'status', '--recursive'], source).split('\n').some(line => line.startsWith('-'))) {
+    run('git', ['submodule', 'update', '--init', '--recursive', '--quiet'], source);
+  }
 
   run('npm', ['ci', '--no-audit', '--no-fund'], source);
   const dist = join(root, 'public', 'modules', name);
@@ -56,5 +68,6 @@ function build(name, pin) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  for (const [name, pin] of Object.entries(pins)) build(name, pin);
+  const sourceOnly = process.argv.includes('--source-only');
+  for (const [name, pin] of Object.entries(pins)) build(name, pin, { sourceOnly });
 }
