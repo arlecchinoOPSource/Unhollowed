@@ -1,0 +1,5 @@
+# Integration
+
+The desired result is one install containing genuine functional app modules, while each original app continues its own desktop release. There is no verified reusable host contract today. Audit the actual UI, domain logic, native commands, permissions, services and storage before selecting extraction or adapter boundaries. Coordinate Terminal and Ember Core work with [Core C-11](https://github.com/arlecchinoOPSource/Arlecchino-Core/issues/11) and [C-12](https://github.com/arlecchinoOPSource/Arlecchino-Core/issues/12); coordinate Swish against its current work. No changes to other repositories unless explicitly included in an authorized issue.
+
+The proposed host must initialize modules, expose explicit capabilities, preserve dirty state and timers, mount accessible UI and shut down safely. It must not merely open existing executables or duplicate the shared framework. Validate each standalone and host build, native command behavior, startup, persistence and shutdown with synthetic data.

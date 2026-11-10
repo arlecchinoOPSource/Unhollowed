@@ -1,0 +1,3 @@
+# Release readiness
+
+Version 1.0.0 requires functional embedded applications, preserved standalone operation, tested persistence and recovery, documented migration and compatibility, accessible interaction, performance validation, asset licensing, privacy/security review, and macOS and Windows native install and regression evidence. Verify upgrade and rollback paths and record actual signing, notarization and update behavior. Do not claim signing or updates work before testing them. Resolve release blockers, prepare notes and obtain explicit product-owner approval before publishing. Setup work is not a release.

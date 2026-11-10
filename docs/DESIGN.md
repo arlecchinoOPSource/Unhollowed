@@ -1,0 +1,5 @@
+# Design and asset pipeline
+
+The rack is solid gray industrial metal, informed by vintage synthesizers and outboard equipment. Shared chassis conventions should support three visibly distinct Terminal, Ember and Swish projector units, each with an aperture, functional power control and indicator lighting. Holograms contrast with the physical assembly, but preserve readable, interactive native app interfaces. Decorative knobs must not change user data.
+
+Model and light editable source assets in Blender; preserve source, licensing, render settings, scale and export provenance. Establish a reviewed format and resolution budget before producing transparent render layers and optimized frontend assets. Existing local Blender work is a reference, not verified production material. React/CSS should assemble the layers with resilient hit regions, keyboard focus and resize behavior. Motion should communicate boot and shutdown without blocking input; honor reduced-motion settings. Sound is optional, independently adjustable and must fail silently without preventing work. Test small windows, text scaling and contrast.
