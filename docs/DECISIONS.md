@@ -22,6 +22,10 @@ Evidence: [AUDIT-U-01.md](AUDIT-U-01.md). Owner: product owner, who delegated th
 - **Accepted risk:** command isolation is not enforced between same-origin iframes; all module code is first-party.
 - **Conditions:** the U-03 first slice re-runs the spike checks with a real app surface, including Windows, focus, resize, audio and shutdown, and the decision is revisited if they fail. Evidence and limits: [SPIKE-U31.md](SPIKE-U31.md).
 
+## Accepted — U-33 data locations, identifier and migration policy (product owner, 2026-11-10)
+
+Host identifier `com.arlecchino.unhlw` (approved name; irreversible after release); modules keep their existing files and folders; the host resolves module folders as siblings of its own data folder and modules accept an injected data directory; verified backup before any module migration; concurrent standalone and host use allowed at the file level with documented staleness until U-15. Evidence, alternatives and risks: [DATA-DECISIONS-U33.md](DATA-DECISIONS-U33.md).
+
 ## Proposals and unresolved decisions
 
 The embedding model, host contract, source extraction, pinned Core revision, canonical data access, concurrent use, migration and backup design, signing and update distribution require evidence and review. Do not treat them as accepted simply because they appear in an architecture draft. Record alternatives, rationale, consequences, date and owner when decisions are made.
