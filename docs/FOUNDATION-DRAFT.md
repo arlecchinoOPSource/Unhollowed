@@ -1,5 +1,7 @@
 # Product and architecture — draft
 
+> Superseded by [SPECIFICATION.md](SPECIFICATION.md) and [ARCHITECTURE.md](ARCHITECTURE.md). Kept for history.
+
 UNHLW is intended to unify three real applications inside one independently installable desktop host. A metallic, physical-looking rack holds three distinctive projector units; their illuminated holograms contain live, interactive application interfaces. Projector power affects activation, while decorative controls must not alter user data. Keyboard accessibility, configurable sound and reduced motion are requirements.
 
 The selected initial visual strategy is hybrid 2.5D: create mechanical assets in Blender, render optimized assets in the React frontend, and present real interactive application UI above them. A real-time 3D engine is not a 1.0 prerequisite. The Blender files in the workspace are existing design references whose suitability, licenses and export pipeline still need review.

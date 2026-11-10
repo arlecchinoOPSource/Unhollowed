@@ -1,9 +1,57 @@
 # Architecture
 
-No UNHLW application exists yet. [Audit notes](AUDIT-DRAFT.md) record the inspected cached source references and limitations. A complete, current upstream audit is tracked in [U-01](https://github.com/arlecchinoOPSource/Unhollowed/issues/1).
+Status: v0.1, 2026-11-10. No UNHLW application code exists yet; this describes the accepted design and its evidence. Requirements and open questions are in [SPECIFICATION.md](SPECIFICATION.md); decisions are in [DECISIONS.md](DECISIONS.md). **Untested** marks parts decided but not yet proven.
 
-## Proposed host
+## Overview
 
-Tauri owns the native window, capabilities and explicitly scoped commands; React renders the rack, projector controls, host lifecycle and real app surfaces. A versioned host contract should specify initialization, mounting, shutdown, error and unsaved-state handling, and service capabilities. Each app's reusable frontend and native domain must first be identified and adapted; a shared UI package is not the app itself. Standalone releases must continue to build and operate independently. Each native capability should follow least privilege, with separate review of filesystem and inter-process access.
+```
+Tauri host (com.arlecchino.unhlw)
+├─ native: window, capabilities, data-dir resolver, one Tauri plugin per module
+│    plugin:terminal | plugin:ember | plugin:swish   (prefixed commands + permissions)
+└─ one webview (React): rack, projectors, lifecycle controls
+     ├─ iframe: Terminal bundle ─┐
+     ├─ iframe: Ember bundle    ─┼─ IPC shim → plugin:<module>|<command>
+     └─ iframe: Swish bundle    ─┘
+data (unchanged, owned by each module):
+  <data_dir>/com.arlecchino.terminal/journal.sqlite3
+  <data_dir>/com.arlecchino.ember/ember.sqlite3
+  <data_dir>/com.arlecchino.swish/swish.sqlite3
+```
 
-A pinned Core dependency, following Swish's submodule pattern if verified appropriate, is proposed; Core is private and CI access needs design. The initial frontend should use Blender-rendered 2.5D assets with live React content and does not require a real-time 3D engine. Packaging must include the necessary modules and services, rather than launching separately installed apps. Actual storage, schema compatibility, native command collisions and package distribution remain unresolved; see [data](DATA.md) and [integration](INTEGRATION.md).
+## Layers
+
+1. **Native host (Rust).** Owns the window, close and quit, capabilities, and the resolver that maps each module to its existing data folder (a sibling of the host's own `app_data_dir()`; debug builds accept `UNHLW_DATA_ROOT` for throwaway data). Registers one Tauri plugin per module. Modules never call `app.exit` or intercept `CloseRequested`/`ExitRequested`.
+2. **Module plugins (Rust, built in each app's repository).** Each app exposes a plugin builder that takes an injected data directory and registers its existing commands under the module's prefix. Business logic and storage stay with the app; UNHLW does not copy backend code. Extraction is U-06, U-08 and U-10, each needing owner authorization in the owning repository.
+3. **Host webview (React).** Draws the rack, projector units and controls with Blender-rendered 2.5D layers and live React content; hosts the iframes; runs the projector state machine (off, booting, active, shutting-down, error).
+4. **Module iframes.** Each app's own web bundle, built by UNHLW from the pinned source with a relative base (`--base=./`) and loaded unmodified in a same-origin iframe. The document boundary isolates DOM, CSS, theme, global listeners and audio contexts.
+5. **IPC shim.** Installed in each iframe before the app's scripts. It sets `window.isTauri`, replaces `__TAURI_INTERNALS__.invoke` (via `Object.defineProperty`; Tauri defines it read-only) so unprefixed commands become `plugin:<module>|<command>`, and passes events and callbacks through to the host. Proven for Terminal's bundle in [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md); the shim relies on Tauri internals, not a public API.
+
+## Lifecycle (design; close handshake **Untested**)
+
+- **Activate:** the host loads the module's iframe and its plugin initializes with the injected data directory.
+- **Flush and close:** the host emits the app's own close event (for example Terminal's `journal-close-requested`) so the app saves; the shim intercepts the app's exit command (for example `journal_finish_exit`) and acknowledges it to the host instead of exiting. Ember and Swish use different event and command names and need the same mapping.
+- **Power-off and unsaved work:** open decision O3 in the specification; the host must not lose unsaved work or reset timers.
+- **Quit:** the host waits for every active module to confirm flush, then exits once.
+
+## Data and concurrency
+
+- Modules keep their SQLite files, schemas and migrations; the host opens nothing itself.
+- All three stores use WAL, `synchronous=FULL`, immediate write transactions and 3 to 5 second busy timeouts, and refuse newer schemas without modifying them. Terminal rejects stale saves with a `revision`; Swish's conflict control is unverified.
+- No change notification exists between processes. Interim: modules re-read on window focus and after errors; the policy is U-15.
+- Verified backup precedes any module migration (none exists today; U-14). Uninstall never touches module folders.
+- Until U-14 and U-15 pass, host builds use synthetic data only.
+
+## Security and permissions
+
+One plugin and one permission set per module; the merged manifest is tested so the handler list, `build.rs` and capabilities agree. CSP stays restrictive as in the apps. Because iframes share the webview's capability, a module's code could call another module's commands; accepted because all code is first-party, and revisited if that changes. Native child webviews are the fallback if enforced isolation is required.
+
+## Dependencies and build
+
+- One Rust workspace pins `tauri`, plugins, `rusqlite` (one minor, currently 0.41.x), `serde` and `serde_json` together; a resolution check in CI detects drift (U-32, U-04).
+- Modules are pinned by full commit SHA whose manifests agree; frontends are built from the pinned source with a relative base.
+- Core is not a dependency of the host. If host UI uses suite-ui, pin by SHA and verify with a consumer build. Core migrations of Terminal and Ember (C-11, C-12) are not prerequisites.
+- Packaging includes the modules; it never launches separately installed apps. No in-app updater in 1.0; signing and notarization are open (U-36).
+
+## Evidence
+
+[AUDIT-U-01.md](AUDIT-U-01.md) (gaps G1 to G14), [SPIKE-U31.md](SPIKE-U31.md) (embedding options), [DEPENDENCY-ALIGNMENT-U32.md](DEPENDENCY-ALIGNMENT-U32.md), [DATA-DECISIONS-U33.md](DATA-DECISIONS-U33.md), [RELEASE-HYGIENE-U34.md](RELEASE-HYGIENE-U34.md), [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md), [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md).
