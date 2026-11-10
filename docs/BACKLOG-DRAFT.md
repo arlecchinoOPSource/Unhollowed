@@ -243,3 +243,15 @@ Replace textual references with actual GitHub issue links once the issues are cr
 
 ---
 
+## Additions — 2026-11-10 (from the [U-01 audit](AUDIT-U-01.md))
+
+All six are M1 issues. Existing issues U-02 to U-06, U-08 to U-15 and U-29 gained a "Plan revision" section linking them.
+
+- [U-31](https://github.com/arlecchinoOPSource/Unhollowed/issues/33) — Decide the embedding model with a prototype. Blocks U-02, U-03, U-05.
+- [U-32](https://github.com/arlecchinoOPSource/Unhollowed/issues/34) — Align native dependencies across the apps (`rusqlite` 0.37 vs 0.41.1). Blocks U-03, U-06, U-08, U-10.
+- [U-33](https://github.com/arlecchinoOPSource/Unhollowed/issues/35) — Decide host identifier, data locations and migration policy. Blocks U-06 to U-10; re-scopes U-12 and U-13.
+- [U-34](https://github.com/arlecchinoOPSource/Unhollowed/issues/36) — Reconcile release tags and manifests across the apps.
+- [U-35](https://github.com/arlecchinoOPSource/Unhollowed/issues/37) — Decide host contract ownership and Core divergence plan. Blocks U-05, U-06, U-08.
+- [U-36](https://github.com/arlecchinoOPSource/Unhollowed/issues/38) — Decide signing, updater and bundle identity strategy. Blocks U-03 identity settings and informs U-29.
+
+Revised dependencies: U-02 also depends on U-31, U-33, U-35, U-36. U-03 also depends on U-31, U-32, U-36 and embeds one real slice. U-05 is derived from that slice. U-06 to U-10 depend on U-32 and U-33. Host builds use synthetic data until U-14 and U-15 pass.
