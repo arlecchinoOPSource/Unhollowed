@@ -1,0 +1,12 @@
+{
+  "name": "swish",
+  "repo": "https://github.com/arlecchinoOPSource/Swish.git",
+  "sha": "c1908c2ac19d7ae3c00ea0c16df2eb0c6f1ca360",
+  "version": "2.0.1",
+  "manifests": {
+    "package.json": "2.0.1",
+    "src-tauri/tauri.conf.json": "2.0.1",
+    "src-tauri/Cargo.toml": "2.0.1"
+  },
+  "builtWith": "vite build --base=./"
+}
