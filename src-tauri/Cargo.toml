@@ -1,0 +1,25 @@
+[package]
+name = "unhollowed"
+description = "Unhollowed: one desktop host for Terminal, Ember and Swish"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+name = "unhollowed_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+unhlw-host-contract = { path = "../crates/host-contract" }
+tauri-plugin-swish = { path = "../crates/module-swish" }
+
+[features]
+# Serve the embedded frontend instead of the dev server (used by tauri build and the native self-test).
+custom-protocol = ["tauri/custom-protocol"]

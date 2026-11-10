@@ -1,6 +1,6 @@
 # Architecture
 
-Status: v0.1, 2026-11-10. No UNHLW application code exists yet; this describes the accepted design and its evidence. Requirements and open questions are in [SPECIFICATION.md](SPECIFICATION.md); decisions are in [DECISIONS.md](DECISIONS.md). **Untested** marks parts decided but not yet proven.
+Status: v0.2, 2026-11-10. The U-03 scaffold implements this design for one module (Swish); Terminal and Ember, the rack and the projector state machine are not built. See [SLICE-U03.md](SLICE-U03.md) for what was verified. Requirements and open questions are in [SPECIFICATION.md](SPECIFICATION.md); decisions are in [DECISIONS.md](DECISIONS.md). **Untested** marks parts decided but not yet proven.
 
 ## Overview
 

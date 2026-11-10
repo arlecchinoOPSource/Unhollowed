@@ -1,0 +1,34 @@
+{
+  "name": "unhollowed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unhollowed: one desktop host for Terminal, Ember and Swish",
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite --host 127.0.0.1 --port 1430 --strictPort",
+    "build": "tauri build --no-bundle",
+    "build:web": "tsc --noEmit && vite build",
+    "build:modules": "node scripts/build-modules.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "test:native": "node scripts/native-selftest.mjs",
+    "check:rust": "cargo fmt --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked",
+    "check": "npm run typecheck && npm test && npm run build:web && npm run check:rust",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  }
+}

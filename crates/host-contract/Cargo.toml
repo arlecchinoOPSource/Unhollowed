@@ -1,0 +1,10 @@
+[package]
+name = "unhlw-host-contract"
+description = "Constants and types shared by the Unhollowed host and its module plugins"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }

@@ -1,0 +1,20 @@
+[package]
+name = "tauri-plugin-swish"
+description = "Unhollowed module adapter for Swish: wraps swish-data behind Swish's existing commands"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+links = "tauri-plugin-swish"
+
+[build-dependencies]
+tauri-plugin = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+serde_json = { workspace = true }
+unhlw-host-contract = { path = "../host-contract" }
+# The real domain and storage code. `npm run build:modules` clones Swish at the commit pinned in
+# modules.json (verified, docs/RELEASE-HYGIENE-U34.md) into .modules/swish. A git dependency is not
+# used: Cargo would also fetch Swish's private Core submodule, which it cannot authenticate.
+swish-data = { path = "../../.modules/swish/src-tauri/data" }
