@@ -5,3 +5,5 @@ UNHLW is a planned local-first desktop suite uniting the real Terminal journal, 
 The interface is envisioned as a solid metallic rack with three projector units and interactive holographic app interfaces. The planned implementation uses Tauri 2, React, TypeScript, Vite and Rust, with Blender-produced 2.5D assets and a reviewed, pinned Arlecchino Core dependency.
 
 **Status:** repository foundation only. There is no application scaffold or embedded application yet. Build, setup, CI, native checks, release and signing are not established. Follow [the backlog](docs/BACKLOG-DRAFT.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md) and [contributing](CONTRIBUTING.md). Track work in [GitHub issues](https://github.com/arlecchinoOPSource/Unhollowed/issues). The owner approves merges and releases.
+
+Use the private [Arlecchino Development board](https://github.com/users/arlecchinoOPSource/projects/3) to follow the backlog. Branch protection is not enforced on the current GitHub plan; the owner approval and review gate is manual.
