@@ -16,6 +16,10 @@ Evidence: [AUDIT-U-01.md](AUDIT-U-01.md). Owner: product owner, who delegated th
 - **Embedding model is decided by prototype**, not assumed ([U-31](https://github.com/arlecchinoOPSource/Unhollowed/issues/33)). Command names are prefixed per module regardless of the outcome.
 - **Foundation order:** audit, then U-31 to U-36 decisions, then scaffold with one real slice, then the host contract derived from it.
 
+## Recommended, pending product-owner approval
+
+- **Embedding model (U-31, 2026-11-10):** each module is a Tauri plugin (prefixed commands and permissions) mounted in its own same-origin iframe; native child webviews are the fallback; sandboxed frames are rejected for now. Evidence, limits and untested items: [SPIKE-U31.md](SPIKE-U31.md). Becomes accepted when the product owner approves the PR that carries it.
+
 ## Proposals and unresolved decisions
 
 The embedding model, host contract, source extraction, pinned Core revision, canonical data access, concurrent use, migration and backup design, signing and update distribution require evidence and review. Do not treat them as accepted simply because they appear in an architecture draft. Record alternatives, rationale, consequences, date and owner when decisions are made.
