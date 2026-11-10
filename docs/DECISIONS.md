@@ -26,10 +26,13 @@ Evidence: [AUDIT-U-01.md](AUDIT-U-01.md). Owner: product owner, who delegated th
 
 Host identifier `com.arlecchino.unhlw` (approved name; irreversible after release); modules keep their existing files and folders; the host resolves module folders as siblings of its own data folder and modules accept an injected data directory; verified backup before any module migration; concurrent standalone and host use allowed at the file level with documented staleness until U-15. Evidence, alternatives and risks: [DATA-DECISIONS-U33.md](DATA-DECISIONS-U33.md).
 
-## Accepted in part — U-36 signing, updater and identity (product owner, 2026-11-10)
+## Accepted — U-36 signing, updater and identity (product owner, 2026-11-10)
 
-- **Accepted: no in-app updater for 1.0.** Users install new builds manually from GitHub Releases. Consequence: an installed 1.0 cannot self-update later; adding an updater means one manual install of a newer build.
-- **Still open (U-36 stays open):** Apple Developer Program and macOS notarization, the Windows signing route or unsigned, product name and bundle targets, credential custody details. Recommendations and owner actions: [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md).
+- **No in-app updater for 1.0.** Users install new builds manually from GitHub Releases. An installed 1.0 cannot self-update later; adding an updater means one manual install of a newer build.
+- **Unsigned.** UNHLW, like the standalone apps, ships unsigned: macOS builds are ad-hoc signed and not notarized, Windows installers are unsigned. No Apple Developer account, certificate, signing service or credential is needed. Release notes and the README must say so, with the first-launch steps (macOS right-click then Open; Windows SmartScreen More info then Run anyway).
+- **Product name: Unhollowed.** Window and installer name; the bundle identifier stays `com.arlecchino.unhlw`.
+- **Bundle targets** follow the recommendation unless the owner changes them: macOS universal `app` and `dmg`, minimum 11.0; Windows NSIS per-user install plus MSI for managed installs, WebView2 bootstrapper embedded. Uninstall never touches module data folders.
+- Evidence and rationale: [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md). Signing and notarization are no longer open; U-29 verifies packaging and the honesty of the status wording only.
 
 ## Accepted — U-35 host contract and Core (product owner, 2026-11-10)
 
@@ -37,4 +40,4 @@ UNHLW owns the host contract (iframe shim, message protocol, Rust module convent
 
 ## Proposals and unresolved decisions
 
-Specification and architecture baseline: [SPECIFICATION.md](SPECIFICATION.md), [ARCHITECTURE.md](ARCHITECTURE.md). Still open: product name; macOS notarization, Windows signing route and bundle targets (U-36); meaning of projector power for unsaved work and timers; cross-process change notification and conflict policy (U-15); performance budgets; Windows behaviour; branch protection; Ember release v2.0.2 provenance. Record alternatives, rationale, consequences, date and owner when each is decided.
+Specification and architecture baseline: [SPECIFICATION.md](SPECIFICATION.md), [ARCHITECTURE.md](ARCHITECTURE.md). Still open: meaning of projector power for unsaved work and timers; cross-process change notification and conflict policy (U-15); performance budgets; Windows behaviour; branch protection; Ember release v2.0.2 provenance. Record alternatives, rationale, consequences, date and owner when each is decided.
