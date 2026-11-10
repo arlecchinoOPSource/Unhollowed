@@ -29,7 +29,7 @@ One Tauri host with two tiny plugins, `alpha` and `beta`, standing in for two mo
 - **Option C isolates the DOM and CSS but not commands**, and A isolates neither. Because all module code is first-party, the realistic risk in A/C is an accidental cross-module call, not a hostile one.
 - **Storage is not isolated in any option that keeps real module code unchanged**, so each module needs its own key prefix or store (or a Core/host settings adapter) regardless of choice.
 
-## Recommendation (pending product-owner approval)
+## Recommendation (approved by the product owner, 2026-11-10: option C)
 
 1. **Baseline for 1.0: option C.** Mount each module in its own same-origin iframe inside the host webview, with each module registered as a Tauri plugin (prefixed commands and permissions). Use a host-side convention that modules reach IPC only through a thin per-module client that targets their own plugin, and keep the ACL-sync test for the merged manifest.
 2. **Accept and document the residual risk** that capability isolation is not enforced in C. Revisit if a module ever loads non-first-party content.
