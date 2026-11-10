@@ -1,0 +1,9 @@
+[package]
+name = "tauri-plugin-alpha"
+version = "0.0.0"
+edition = "2024"
+links = "tauri-plugin-alpha"
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+[dependencies]
+tauri = "2.12.5"

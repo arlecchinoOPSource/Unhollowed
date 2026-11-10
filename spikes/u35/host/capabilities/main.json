@@ -1,0 +1,1 @@
+{"identifier": "cap-main", "windows": ["main"], "permissions": ["alpha:allow-ping", "alpha:allow-finish-exit", "beta:allow-ping", "beta:allow-finish-exit", "core:event:default"]}
