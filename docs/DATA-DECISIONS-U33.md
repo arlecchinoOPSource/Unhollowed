@@ -33,9 +33,9 @@ All three schemas are at version 1, so **no migration has ever run on a v2 file*
 
 **What blocks reuse of the existing paths.** Every app resolves its folder internally, so a host with a different identifier would look in the wrong folder and show empty data.
 
-## Decisions (recommended, pending product-owner approval)
+## Decisions (approved by the product owner, 2026-11-10)
 
-1. **Host identifier: `com.arlecchino.unhlw`** (name proposed; the owner may choose another). It is **irreversible after the first release**: changing it later changes the host's own settings folder and update identity. Aligned with U-36.
+1. **Host identifier: `com.arlecchino.unhlw`** (name approved by the owner). It is **irreversible after the first release**: changing it later changes the host's own settings folder and update identity. Aligned with U-36.
 2. **Modules keep their existing files and folders.** No merged store, no new shared schema, no copying databases into a host folder.
 3. **The host resolves module folders explicitly:** `<data_dir>/<module identifier>`, taken as a sibling of the host's own `app_data_dir()` (equivalently `dirs::data_dir()`). Modules must **accept an injected data directory** instead of calling `app_data_dir()` themselves; the extraction issues (U-06, U-08, U-10) change those call sites. Debug builds accept `UNHLW_DATA_ROOT` pointing to a throwaway root containing the same three subfolders; release builds ignore it (same pattern as Swish's `SWISH_DATA_DIR`).
 4. **Synthetic data only until U-14 and U-15 pass** (already accepted).
