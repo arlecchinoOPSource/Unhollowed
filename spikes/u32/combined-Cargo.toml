@@ -1,0 +1,9 @@
+[workspace]
+[package]
+name = "u32-combined"
+version = "0.0.0"
+edition = "2024"
+[dependencies]
+terminal-journal = { path = "../terminal/src-tauri" }
+ember-by-arlecchino = { path = "../ember/desktop/src-tauri" }
+swish-data = { path = "../swish/src-tauri/data" }

@@ -1,0 +1,398 @@
+diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
+index 294efb5..aa5b4a1 100644
+--- a/src-tauri/Cargo.lock
++++ b/src-tauri/Cargo.lock
+@@ -645,7 +645,7 @@ checksum = "fac5fca71e65e94cc718a6e2af65d6e0f9c6027751c2aa562fbb5087fda639bc"
+ dependencies = [
+  "bit-set",
+  "cssparser",
+- "foldhash 0.2.0",
++ "foldhash",
+  "html5ever",
+  "precomputed-hash",
+  "selectors",
+@@ -785,12 +785,6 @@ version = "1.0.7"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+ 
+-[[package]]
+-name = "foldhash"
+-version = "0.1.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+-
+ [[package]]
+ name = "foldhash"
+ version = "0.2.0"
+@@ -1190,28 +1184,22 @@ version = "0.12.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+ 
+-[[package]]
+-name = "hashbrown"
+-version = "0.15.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+-dependencies = [
+- "foldhash 0.1.5",
+-]
+-
+ [[package]]
+ name = "hashbrown"
+ version = "0.17.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
++dependencies = [
++ "foldhash",
++]
+ 
+ [[package]]
+ name = "hashlink"
+-version = "0.10.0"
++version = "0.12.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
++checksum = "a596f1b20ed2cc5ecac41a164aaebc7258057060f06c0cf7a2ba3991ee7990fb"
+ dependencies = [
+- "hashbrown 0.15.5",
++ "hashbrown 0.17.1",
+ ]
+ 
+ [[package]]
+@@ -1736,9 +1724,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "libsqlite3-sys"
+-version = "0.35.0"
++version = "0.39.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "133c182a6a2c87864fe97778797e46c7e999672690dc9fa3ee8e241aa4a9c13f"
++checksum = "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3"
+ dependencies = [
+  "cc",
+  "pkg-config",
+@@ -2539,11 +2527,20 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
++[[package]]
++name = "rsqlite-vfs"
++version = "0.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "353b74f9810d5b085b6c42c9d86a5f0fdb795553235cdd48753b32e3809d18a7"
++dependencies = [
++ "thiserror 2.0.21",
++]
++
+ [[package]]
+ name = "rusqlite"
+-version = "0.37.0"
++version = "0.41.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "165ca6e57b20e1351573e3729b958bc62f0e48025386970b6e4d29e7a7e71f3f"
++checksum = "da9bba6f3506135e120a6586df05be18b48d18896600646a4bec8f993d91a594"
+ dependencies = [
+  "bitflags 2.13.2",
+  "fallible-iterator",
+@@ -2551,6 +2548,7 @@ dependencies = [
+  "hashlink",
+  "libsqlite3-sys",
+  "smallvec",
++ "sqlite-wasm-rs",
+ ]
+ 
+ [[package]]
+@@ -2927,6 +2925,16 @@ dependencies = [
+  "system-deps",
+ ]
+ 
++[[package]]
++name = "sqlite-wasm-rs"
++version = "0.6.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a6cd504cecbfe7eef649988840f9a6cb768d11085efec138f8e99f160632d867"
++dependencies = [
++ "cc",
++ "rsqlite-vfs",
++]
++
+ [[package]]
+ name = "stable_deref_trait"
+ version = "1.2.1"
+diff --git a/src-tauri/data/Cargo.toml b/src-tauri/data/Cargo.toml
+index da7f69e..33f4de0 100644
+--- a/src-tauri/data/Cargo.toml
++++ b/src-tauri/data/Cargo.toml
+@@ -7,7 +7,7 @@ description = "Swish project/reminder domain and versioned local SQLite storage"
+ publish = false
+ 
+ [dependencies]
+-rusqlite = { version = "0.37", features = ["bundled"] }
++rusqlite = { version = "0.41", features = ["bundled"] }
+ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
+ uuid = { version = "1", features = ["v4"] }
+diff --git a/src-tauri/gen/schemas/macOS-schema.json b/src-tauri/gen/schemas/macOS-schema.json
+index 1ef1225..f41fe83 100644
+--- a/src-tauri/gen/schemas/macOS-schema.json
++++ b/src-tauri/gen/schemas/macOS-schema.json
+@@ -176,6 +176,186 @@
+     "Identifier": {
+       "description": "Permission identifier",
+       "oneOf": [
++        {
++          "description": "Enables the cancel_restore command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-cancel-restore",
++          "markdownDescription": "Enables the cancel_restore command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the create_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-create-project",
++          "markdownDescription": "Enables the create_project command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the create_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-create-reminder",
++          "markdownDescription": "Enables the create_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the delete_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-delete-project",
++          "markdownDescription": "Enables the delete_project command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the delete_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-delete-reminder",
++          "markdownDescription": "Enables the delete_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the export_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-export-backup",
++          "markdownDescription": "Enables the export_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the finish_exit command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-finish-exit",
++          "markdownDescription": "Enables the finish_exit command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the inspect_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-inspect-backup",
++          "markdownDescription": "Enables the inspect_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the load_workspace command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-load-workspace",
++          "markdownDescription": "Enables the load_workspace command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the restore_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-restore-backup",
++          "markdownDescription": "Enables the restore_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the restore_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-restore-reminder",
++          "markdownDescription": "Enables the restore_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the set_reminder_completed command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-set-reminder-completed",
++          "markdownDescription": "Enables the set_reminder_completed command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the undo_restore command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-undo-restore",
++          "markdownDescription": "Enables the undo_restore command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the update_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-update-project",
++          "markdownDescription": "Enables the update_project command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the update_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "allow-update-reminder",
++          "markdownDescription": "Enables the update_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the cancel_restore command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-cancel-restore",
++          "markdownDescription": "Denies the cancel_restore command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the create_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-create-project",
++          "markdownDescription": "Denies the create_project command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the create_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-create-reminder",
++          "markdownDescription": "Denies the create_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the delete_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-delete-project",
++          "markdownDescription": "Denies the delete_project command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the delete_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-delete-reminder",
++          "markdownDescription": "Denies the delete_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the export_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-export-backup",
++          "markdownDescription": "Denies the export_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the finish_exit command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-finish-exit",
++          "markdownDescription": "Denies the finish_exit command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the inspect_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-inspect-backup",
++          "markdownDescription": "Denies the inspect_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the load_workspace command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-load-workspace",
++          "markdownDescription": "Denies the load_workspace command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the restore_backup command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-restore-backup",
++          "markdownDescription": "Denies the restore_backup command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the restore_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-restore-reminder",
++          "markdownDescription": "Denies the restore_reminder command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the set_reminder_completed command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-set-reminder-completed",
++          "markdownDescription": "Denies the set_reminder_completed command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the undo_restore command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-undo-restore",
++          "markdownDescription": "Denies the undo_restore command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the update_project command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-update-project",
++          "markdownDescription": "Denies the update_project command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the update_reminder command without any pre-configured scope.",
++          "type": "string",
++          "const": "deny-update-reminder",
++          "markdownDescription": "Denies the update_reminder command without any pre-configured scope."
++        },
+         {
+           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
+           "type": "string",
+@@ -2215,6 +2395,72 @@
+           "type": "string",
+           "const": "core:window:deny-unminimize",
+           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
++        },
++        {
++          "description": "This permission set configures the types of dialogs\navailable from the dialog plugin.\n\n#### Granted Permissions\n\nAll dialog types are enabled.\n\n\n\n#### This default permission set includes:\n\n- `allow-message`\n- `allow-save`\n- `allow-open`",
++          "type": "string",
++          "const": "dialog:default",
++          "markdownDescription": "This permission set configures the types of dialogs\navailable from the dialog plugin.\n\n#### Granted Permissions\n\nAll dialog types are enabled.\n\n\n\n#### This default permission set includes:\n\n- `allow-message`\n- `allow-save`\n- `allow-open`"
++        },
++        {
++          "description": "Enables the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)",
++          "type": "string",
++          "const": "dialog:allow-ask",
++          "markdownDescription": "Enables the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)"
++        },
++        {
++          "description": "Enables the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)",
++          "type": "string",
++          "const": "dialog:allow-confirm",
++          "markdownDescription": "Enables the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `allow-message` and will be removed in v3)"
++        },
++        {
++          "description": "Enables the message command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:allow-message",
++          "markdownDescription": "Enables the message command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the open command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:allow-open",
++          "markdownDescription": "Enables the open command without any pre-configured scope."
++        },
++        {
++          "description": "Enables the save command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:allow-save",
++          "markdownDescription": "Enables the save command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)",
++          "type": "string",
++          "const": "dialog:deny-ask",
++          "markdownDescription": "Denies the ask command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)"
++        },
++        {
++          "description": "Denies the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)",
++          "type": "string",
++          "const": "dialog:deny-confirm",
++          "markdownDescription": "Denies the confirm command without any pre-configured scope. (**DEPRECATED**: This is now an alias to `deny-message` and will be removed in v3)"
++        },
++        {
++          "description": "Denies the message command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:deny-message",
++          "markdownDescription": "Denies the message command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the open command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:deny-open",
++          "markdownDescription": "Denies the open command without any pre-configured scope."
++        },
++        {
++          "description": "Denies the save command without any pre-configured scope.",
++          "type": "string",
++          "const": "dialog:deny-save",
++          "markdownDescription": "Denies the save command without any pre-configured scope."
+         }
+       ]
+     },
