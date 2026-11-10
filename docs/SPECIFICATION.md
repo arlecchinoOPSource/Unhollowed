@@ -38,7 +38,7 @@ People who already use, or want to use, the Arlecchino tools together. Supported
 | N5 | **Performance:** frame time and memory measured on typical hardware before any claim; no real-time 3D engine. | Open (budgets not set) |
 | N6 | **Accessibility and contrast:** WCAG AA contrast for host chrome; assets licensed and recorded. | Accepted |
 | N7 | **Reproducibility:** modules are pinned by full commit SHA whose manifests agree ([RELEASE-HYGIENE-U34.md](RELEASE-HYGIENE-U34.md)); dependency versions aligned across modules ([DEPENDENCY-ALIGNMENT-U32.md](DEPENDENCY-ALIGNMENT-U32.md)). | Accepted |
-| N8 | **Honest status:** signing, notarization, update behaviour and platform support are described exactly as verified. | Accepted |
+| N8 | **Honest status:** the unsigned and ad-hoc status, the absence of an updater, and platform support are described exactly as verified. | Accepted |
 
 ## 5. Accepted decisions (summary)
 
@@ -50,7 +50,7 @@ People who already use, or want to use, the Arlecchino tools together. Supported
 | Host contract | UNHLW owns it (iframe shim, message protocol, Rust module convention); Core stays UI-only; app frontends mounted unmodified from relative-base builds; backend extraction in the app repos by owner-authorized issues | [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md) |
 | Lifecycle | The host owns window, close and quit; modules never call `app.exit` | DECISIONS |
 | Data | Host identifier `com.arlecchino.unhlw`; modules keep their folders; host resolves them as siblings; verified backup before any migration | [DATA-DECISIONS-U33.md](DATA-DECISIONS-U33.md) |
-| Updates | No in-app updater for 1.0 | [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md) |
+| Updates and signing | No in-app updater for 1.0; all builds unsigned; product name Unhollowed | [SIGNING-IDENTITY-U36.md](SIGNING-IDENTITY-U36.md) |
 | Dependencies | Same `rusqlite` minor and Tauri 2.12.x line everywhere; Swish bump proposed (Swish#35) | [DEPENDENCY-ALIGNMENT-U32.md](DEPENDENCY-ALIGNMENT-U32.md) |
 | Governance | One branch and PR per issue; independent review; owner approves merges and releases | AGENTS, CONTRIBUTING |
 
@@ -79,8 +79,8 @@ As in [RELEASE.md](RELEASE.md): functional embedded modules, preserved standalon
 
 | # | Question | Needed by | Notes |
 | --- | --- | --- | --- |
-| O1 | Product name for the installer and window (bundle identifier is fixed) | U-03 | Owner |
-| O2 | macOS notarization, Windows signing route or unsigned, bundle targets, credential custody | U-29 | U-36 stays open |
+| O1 | ~~Product name~~ **Decided: Unhollowed** (bundle identifier `com.arlecchino.unhlw`) | U-03 | Closed |
+| O2 | ~~Signing~~ **Decided: unsigned** (macOS ad-hoc, Windows unsigned); bundle targets as recommended | U-29 | Closed |
 | O3 | Meaning of projector power for unsaved work and timers; whether power-off unmounts or hides the iframe | U-11, U-23 | Decide with the U-03 slice evidence |
 | O4 | Whether the host or each module owns audio and startup screens beyond 1.0 | U-26 | Modules keep their own for 1.0 (Accepted); iframe autoplay Untested |
 | O5 | Cross-process change notification and conflict policy | U-15 | No notification exists today |
