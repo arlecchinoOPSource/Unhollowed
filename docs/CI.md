@@ -40,12 +40,21 @@ To rotate: run the sequence again, confirm a CI run passes, then remove the old 
 
 ## Branch protection
 
-The repository is public, and GitHub's API answers "Branch not protected" for `main` rather than a plan limitation, so protection is available. It is **not enabled**: enabling it is a settings change that needs the owner's approval, and required checks should exist first. After the workflow has run green once, a suitable rule is: require a pull request, require the two `checks (...)` jobs, no force-pushes or deletion, administrators not exempted only if the owner wants that:
+Enabled on `main` on 2026-11-11 at the owner's request, with the rule below. It is applied through the GitHub API (it is a repository setting, not a file), so this section is its record.
+
+| Setting | Value |
+| --- | --- |
+| Pull request required | yes, **0** approving reviews (single-owner repository) |
+| Required status checks | `checks (macos-15)`, `checks (windows-latest)`; not strict (a branch need not be up to date) |
+| Force-pushes, deletion | blocked |
+| Applies to administrators | **no** (`enforce_admins: false`), so the owner and tools signed in as the owner can still push or merge past a failing check |
+
+The native self-tests are deliberately **not** required: they need the Core key, the macOS pool has been unreliable, and a required job that cannot be scheduled would block every merge. They still run on every pull request and their result is part of the review. Read it back with `gh api repos/arlecchinoOPSource/Unhollowed/branches/main/protection`. To change the rule, edit the names to match the job names in `ci.yml` and send the same request:
 
 ```sh
 gh api -X PUT repos/arlecchinoOPSource/Unhollowed/branches/main/protection --input - <<'JSON'
 {
-  "required_status_checks": { "strict": false, "contexts": ["checks (macos-latest)", "checks (windows-latest)"] },
+  "required_status_checks": { "strict": false, "contexts": ["checks (macos-15)", "checks (windows-latest)"] },
   "enforce_admins": false,
   "required_pull_request_reviews": { "required_approving_review_count": 0 },
   "restrictions": null,
@@ -55,7 +64,7 @@ gh api -X PUT repos/arlecchinoOPSource/Unhollowed/branches/main/protection --inp
 JSON
 ```
 
-Zero required approvals keeps a single-owner repository workable while still forcing a pull request and green checks; the independent review the project asks for stays a manual step.
+If a runner pool cannot be scheduled and a pull request must still merge, either rerun the job or, as the owner, merge past the check and say so in the pull request. Set `enforce_admins` to `true` to remove that escape hatch. Changing a job's name in the workflow also requires updating this rule, or merges will wait for a check that never reports.
 
 ## Known limits
 
