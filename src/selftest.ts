@@ -8,7 +8,6 @@ import type { ModuleName } from './modules';
  * it starts the same close sequence a user's close would.
  */
 const started = new Set<ModuleName>();
-const finished = new Set<ModuleName>();
 const EXPECTED: ModuleName[] = ['terminal', 'swish'];
 
 type Unhlw = { module: string; calls: string[]; effective: boolean; hadOwnInternals: boolean; ownWritable: boolean | null; ownConfigurable: boolean | null; problem: string | null };
@@ -102,9 +101,11 @@ async function terminal(frame: HTMLIFrameElement, report: Record<string, unknown
   tail(w, report);
 }
 
-export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | null): Promise<void> {
-  if (started.has(name) || !frame || !(await invoke<boolean>('selftest_enabled'))) return;
-  started.add(name);
+/** Frames wait here until every expected module has loaded, then the probes run one module at a time. */
+const frames = new Map<ModuleName, HTMLIFrameElement>();
+let running: Promise<void> | null = null;
+
+async function probe(name: ModuleName, frame: HTMLIFrameElement): Promise<void> {
   const report: Record<string, unknown> = {};
   try {
     await (name === 'swish' ? swish : terminal)(frame, report);
@@ -121,13 +122,30 @@ export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | n
   }
   // Swish keeps the report name it had before there was a second module.
   await invoke('selftest_report', { name: name === 'swish' ? 'slice' : name, data: report });
-  finished.add(name);
-  if (EXPECTED.every(module => finished.has(module))) {
-    // Resize last, with both modules mounted, and record what each frame saw.
-    await invoke('selftest_resize', { width: 800, height: 600 });
-    await sleep(600);
-    const widths = [...document.querySelectorAll('iframe')].map(f => f.contentWindow?.innerWidth ?? null);
-    await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, frame_widths_after_resize: widths } });
-    await invoke('selftest_finish');
+}
+
+async function runAll(): Promise<void> {
+  // One module at a time: a page has a single focused element, so a module that focuses itself while another
+  // is being probed (Chromium and WebView2 blur the other frame's element) would change what the probe sees.
+  for (const name of EXPECTED) {
+    const frame = frames.get(name)!;
+    // The frame being probed holds the page's focus; modules that autofocus at load have already settled.
+    await until(`${name} startup screen to finish`, () => !frame.contentDocument?.querySelector('.startup'), 25000).catch(() => undefined);
+    frame.contentWindow?.focus();
+    await probe(name, frame);
   }
+  // Resize last, with both modules mounted, and record what each frame saw.
+  await invoke('selftest_resize', { width: 800, height: 600 });
+  await sleep(600);
+  const widths = [...document.querySelectorAll('iframe')].map(f => f.contentWindow?.innerWidth ?? null);
+  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, frame_widths_after_resize: widths } });
+  await invoke('selftest_finish');
+}
+
+export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | null): Promise<void> {
+  if (started.has(name) || !frame || !(await invoke<boolean>('selftest_enabled'))) return;
+  started.add(name);
+  frames.set(name, frame);
+  if (EXPECTED.every(module => frames.has(module)) && !running) running = runAll();
+  await running;
 }

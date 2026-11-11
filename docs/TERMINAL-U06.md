@@ -31,6 +31,10 @@ macOS, native self-test with both modules mounted, synthetic data (16 checks, al
 
 Windows and the Terminal PR's own CI are the remaining evidence; the CI results are linked from the pull requests.
 
+## Finding: two modules compete for focus (Windows)
+
+The first Windows run with both modules passed 15 of 16 checks; the failure was Swish's "name field focused after the dialog opens". A page has one focused element, and Chromium-based WebView2 blurs another frame's focused element when a different frame takes focus (WKWebView on macOS keeps each document's own). Terminal focuses its editor as it finishes starting, which took the focus Swish had just given its dialog field. The self-test now probes one module at a time and focuses the probed frame first. The product consequence is real and unresolved: with several modules visible, a module that autofocuses at load can take focus from the one the person is using. The host needs a rule (only the foreground module may autofocus; part of power and lifecycle, U-11 / open decision O3) before the rack arrives.
+
 ## Not done or not verified
 
 - **Backup, restore and export** (native file dialogs) are registered but not exercised by the self-test.
