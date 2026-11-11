@@ -19,6 +19,8 @@ pub const INFO: ModuleInfo = ModuleInfo {
     name: "terminal",
     identifier: "com.arlecchino.terminal",
     close_event: "journal-close-requested",
+    database_file: "journal.sqlite3",
+    schema_version: 1,
 };
 
 /// Terminal calls this after saving and starting its close sound. The module never exits the app:
@@ -53,11 +55,42 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
             app_lib::commands::entry_export
         ])
         .setup(move |app, _api| {
-            let database = commands::open_in(&data_dir);
+            let database = match unhlw_data_safety::prepare(
+                INFO.name,
+                &data_dir.join(INFO.database_file),
+                &data_dir.join("backups"),
+                unhlw_data_safety::effective_version(INFO.schema_version),
+            ) {
+                unhlw_data_safety::Prepared::Refused(reason) => Err(reason),
+                _ => commands::open_in(&data_dir),
+            };
             app.manage(Database(Mutex::new(database)));
             app.manage(PendingRestore::default());
             app.manage(DataDir(Ok(data_dir.clone())));
             Ok(())
         })
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The schema version the host declares must be the one the pinned Terminal really writes: a pin that moves the
+    /// schema fails here, so the host's backup-before-migrate rule cannot silently stop applying.
+    #[test]
+    fn declared_schema_version_matches_the_real_module() {
+        let dir =
+            std::env::temp_dir().join(format!("unhlw-terminal-schema-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let connection = commands::open_in(&dir).expect("Terminal opens a fresh folder");
+        drop(connection);
+        let file = dir.join(INFO.database_file);
+        assert!(file.exists(), "{} was not created", INFO.database_file);
+        assert_eq!(
+            unhlw_data_safety::user_version(&file).unwrap(),
+            INFO.schema_version
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

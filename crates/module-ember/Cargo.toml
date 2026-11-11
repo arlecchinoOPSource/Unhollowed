@@ -14,6 +14,7 @@ tauri-plugin = { workspace = true }
 tauri = { workspace = true }
 serde_json = { workspace = true }
 unhlw-host-contract = { path = "../host-contract" }
+unhlw-data-safety = { path = "../data-safety" }
 # Ember's own library (habits, storage, backup, shared commands). `npm run build:modules` clones Ember at the
 # commit pinned in modules.json (manifests verified) into .modules/ember; no code is copied.
 ember-by-arlecchino = { path = "../../.modules/ember/desktop/src-tauri", default-features = false }

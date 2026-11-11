@@ -20,6 +20,8 @@ pub const INFO: ModuleInfo = ModuleInfo {
     name: "ember",
     identifier: "com.arlecchino.ember",
     close_event: "ember:exit-requested",
+    database_file: "ember.sqlite3",
+    schema_version: 1,
 };
 
 /// Ember calls this after its habits are saved. The module never exits the app: it tells the host, which
@@ -82,8 +84,16 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
             startup_sound_native
         ])
         .setup(move |app, _api| {
-            let path = data_dir.join("ember.sqlite3");
-            let connection = commands::open_at(&path);
+            let path = data_dir.join(INFO.database_file);
+            let connection = match unhlw_data_safety::prepare(
+                INFO.name,
+                &path,
+                &data_dir.join("backups"),
+                unhlw_data_safety::effective_version(INFO.schema_version),
+            ) {
+                unhlw_data_safety::Prepared::Refused(reason) => Err(reason),
+                _ => commands::open_at(&path),
+            };
             if let Err(reason) = &connection {
                 eprintln!("ember storage: {reason}");
             }
@@ -94,4 +104,24 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
             Ok(())
         })
         .build()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The schema version the host declares must be the one the pinned Ember really writes (see Terminal's twin test).
+    #[test]
+    fn declared_schema_version_matches_the_real_module() {
+        let dir = std::env::temp_dir().join(format!("unhlw-ember-schema-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = dir.join(INFO.database_file);
+        drop(commands::open_at(&file).expect("Ember opens a fresh folder"));
+        assert!(file.exists(), "{} was not created", INFO.database_file);
+        assert_eq!(
+            unhlw_data_safety::user_version(&file).unwrap(),
+            INFO.schema_version
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

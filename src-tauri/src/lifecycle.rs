@@ -121,6 +121,12 @@ pub async fn host_power_off(app: AppHandle, module: String) -> Result<PowerOff, 
     })
 }
 
+/// Things the person should be told about their data (e.g. a verified copy made before an upgrade).
+#[tauri::command]
+pub fn host_data_notices() -> Vec<unhlw_data_safety::Notice> {
+    unhlw_data_safety::notices()
+}
+
 #[tauri::command]
 pub fn host_module_activated(state: State<'_, Lifecycle>, module: String) -> Result<(), String> {
     modules::find(&module).ok_or("Unknown module.")?;
