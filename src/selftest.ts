@@ -32,7 +32,6 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     // rendered module. Stop at once with a clear reason instead.
     report.shim_effective = w.__unhlw?.effective ?? null;
     report.shim_details = w.__unhlw ? { hadOwnInternals: w.__unhlw.hadOwnInternals, ownWritable: w.__unhlw.ownWritable, ownConfigurable: w.__unhlw.ownConfigurable, problem: w.__unhlw.problem } : null;
-    if (w.__unhlw && !w.__unhlw.effective) throw new Error('the shim could not replace the Tauri internals the frame already has (WebView2 injects them into every frame); see shim_details');
     if (!w.__unhlw) throw new Error('the shim is not installed in the module frame: the Swish bundle is missing or was not built for the host');
     report.isTauri_in_frame = (w as unknown as { isTauri?: boolean }).isTauri === true;
     report.root_rendered = !!(await until('Swish root content', () => d.getElementById('root')?.childElementCount));
@@ -74,7 +73,8 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     } catch (error) { report.audio_context_error = String(error); }
 
     report.ipc_calls_through_shim = [...new Set((w.__unhlw?.calls ?? []).map(call => call.split(' -> ')[0]))];
-    report.all_calls_prefixed = (w.__unhlw?.calls ?? []).every(call => call.split(' -> ')[1].startsWith('plugin:'));
+    const calls = w.__unhlw?.calls ?? [];
+    report.all_calls_prefixed = calls.length > 0 && calls.every(call => call.split(' -> ')[1].startsWith('plugin:'));
     report.ok = true;
   } catch (error) {
     report.ok = false;

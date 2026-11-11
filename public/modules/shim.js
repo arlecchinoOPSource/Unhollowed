@@ -31,7 +31,8 @@
   window.__unhlw = {
     module,
     calls,
-    // false means the frame keeps its own Tauri internals and commands would not be routed to the module plugin.
+    // false on Windows (WebView2 gives every frame its own permanent internals); the build-time adapters route the
+    // module's calls through the host window instead (adapter/), so this only matters for code that bypasses them.
     effective: window.__TAURI_INTERNALS__ === internals,
     hadOwnInternals: !!before,
     ownWritable: before ? before.writable ?? null : null,
