@@ -10,5 +10,10 @@ pub const COMMANDS: &[&str] = &[
     "delete_project",
     "delete_reminder",
     "restore_reminder",
+    "export_backup",
+    "inspect_backup",
+    "cancel_restore",
+    "restore_backup",
+    "undo_restore",
     "finish_exit",
 ];

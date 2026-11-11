@@ -1,19 +1,16 @@
 //! Unhollowed module adapter for Swish.
 //!
-//! Interim (first slice): this crate only wraps the real `swish-data` crate behind the same
-//! command names Swish's frontend already uses, so the unmodified Swish bundle runs behind
-//! the host shim. Moving this plugin builder into the Swish repository is tracked in U-10.
-//! Backup and restore commands (native file dialogs) are not part of this slice.
+//! Swish's storage, data commands and backup/restore live in Swish's own library (`swish_lib`); this crate
+//! registers those very commands under the `swish` plugin so the unmodified Swish frontend works behind the
+//! host adapters, and supplies the one command that must differ: `finish_exit` reports to the host and never
+//! exits the app (docs/HOST-CONTRACT-U35.md). Nothing is copied from Swish.
 
 use std::path::PathBuf;
-use std::sync::Mutex;
 
-use swish_data::{
-    ApiError, DATABASE_FILE, DeletedProject, Error, Project, ProjectInput, Reminder, ReminderInput,
-    Store, Workspace,
-};
+use swish_lib::backup_commands::{self, LastSafetyCopy, PendingRestore};
+use swish_lib::commands::{self, Storage};
 use tauri::plugin::{Builder, TauriPlugin};
-use tauri::{AppHandle, Emitter, Manager, Runtime, State};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use unhlw_host_contract::{FLUSH_EVENT, Flushed, ModuleInfo};
 
 include!("../commands.rs");
@@ -24,89 +21,8 @@ pub const INFO: ModuleInfo = ModuleInfo {
     close_event: "swish-close-requested",
 };
 
-/// The open store, or why it could not be opened; the UI explains the failure instead of the app crashing.
-pub struct Storage(Mutex<Result<Store, ApiError>>);
-
-impl Storage {
-    fn with<T>(&self, work: impl FnOnce(&mut Store) -> Result<T, Error>) -> Result<T, ApiError> {
-        // A panic mid-write already rolled its transaction back; the connection stays usable.
-        let mut guard = self
-            .0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        match guard.as_mut() {
-            Ok(store) => work(store).map_err(ApiError::from),
-            Err(error) => Err(error.clone()),
-        }
-    }
-}
-
-#[tauri::command]
-fn load_workspace(storage: State<'_, Storage>) -> Result<Workspace, ApiError> {
-    storage.with(|store| store.workspace())
-}
-
-#[tauri::command]
-fn create_project(storage: State<'_, Storage>, input: ProjectInput) -> Result<Project, ApiError> {
-    storage.with(|store| store.create_project(&input))
-}
-
-#[tauri::command]
-fn update_project(
-    storage: State<'_, Storage>,
-    id: String,
-    input: ProjectInput,
-) -> Result<Project, ApiError> {
-    storage.with(|store| store.update_project(&id, &input))
-}
-
-#[tauri::command]
-fn create_reminder(
-    storage: State<'_, Storage>,
-    input: ReminderInput,
-) -> Result<Reminder, ApiError> {
-    storage.with(|store| store.create_reminder(&input))
-}
-
-#[tauri::command]
-fn update_reminder(
-    storage: State<'_, Storage>,
-    id: String,
-    input: ReminderInput,
-) -> Result<Reminder, ApiError> {
-    storage.with(|store| store.update_reminder(&id, &input))
-}
-
-#[tauri::command]
-fn set_reminder_completed(
-    storage: State<'_, Storage>,
-    id: String,
-    completed: bool,
-) -> Result<Reminder, ApiError> {
-    storage.with(|store| store.set_completed(&id, completed))
-}
-
-#[tauri::command]
-fn delete_project(
-    storage: State<'_, Storage>,
-    id: String,
-    expected_reminders: u32,
-) -> Result<DeletedProject, ApiError> {
-    storage.with(|store| store.delete_project(&id, expected_reminders))
-}
-
-#[tauri::command]
-fn delete_reminder(storage: State<'_, Storage>, id: String) -> Result<Reminder, ApiError> {
-    storage.with(|store| store.delete_reminder(&id))
-}
-
-#[tauri::command]
-fn restore_reminder(storage: State<'_, Storage>, reminder: Reminder) -> Result<Reminder, ApiError> {
-    storage.with(|store| store.restore_reminder(&reminder))
-}
-
-/// Swish calls this after saving and starting its close sound. The module never exits the
-/// app: it tells the host, which decides when to quit (docs/HOST-CONTRACT-U35.md).
+/// Swish calls this after saving and starting its close sound. The module never exits the app:
+/// it tells the host, which decides when to quit.
 #[tauri::command]
 fn finish_exit<R: Runtime>(app: AppHandle<R>, linger_ms: Option<u64>) {
     let payload = Flushed {
@@ -117,24 +33,31 @@ fn finish_exit<R: Runtime>(app: AppHandle<R>, linger_ms: Option<u64>) {
 }
 
 /// Builds the plugin. `data_dir` is Swish's existing folder (`<data_dir>/com.arlecchino.swish`),
-/// injected by the host so existing data is found (docs/DATA-DECISIONS-U33.md).
-pub fn init<R: Runtime>(data_dir: PathBuf) -> TauriPlugin<R> {
-    Builder::new(INFO.name)
+/// injected by the host so existing data is found (docs/DATA-DECISIONS-U33.md). Swish's backup commands open
+/// native file dialogs, so they are written for the desktop runtime (`Wry`) and the plugin is too.
+pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
+    Builder::<tauri::Wry>::new(INFO.name)
         .invoke_handler(tauri::generate_handler![
-            load_workspace,
-            create_project,
-            update_project,
-            create_reminder,
-            update_reminder,
-            set_reminder_completed,
-            delete_project,
-            delete_reminder,
-            restore_reminder,
+            commands::load_workspace,
+            commands::create_project,
+            commands::update_project,
+            commands::create_reminder,
+            commands::update_reminder,
+            commands::set_reminder_completed,
+            commands::delete_project,
+            commands::delete_reminder,
+            commands::restore_reminder,
+            backup_commands::export_backup,
+            backup_commands::inspect_backup,
+            backup_commands::cancel_restore,
+            backup_commands::restore_backup,
+            backup_commands::undo_restore,
             finish_exit
         ])
         .setup(move |app, _api| {
-            let store = Store::open(&data_dir.join(DATABASE_FILE)).map_err(ApiError::from);
-            app.manage(Storage(Mutex::new(store)));
+            app.manage(Storage::open(data_dir.clone()));
+            app.manage(PendingRestore::default());
+            app.manage(LastSafetyCopy::default());
             Ok(())
         })
         .build()

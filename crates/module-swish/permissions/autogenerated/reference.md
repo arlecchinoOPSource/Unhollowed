@@ -10,6 +10,32 @@
 <tr>
 <td>
 
+`swish:allow-cancel-restore`
+
+</td>
+<td>
+
+Enables the cancel_restore command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:deny-cancel-restore`
+
+</td>
+<td>
+
+Denies the cancel_restore command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `swish:allow-create-project`
 
 </td>
@@ -114,6 +140,32 @@ Denies the delete_reminder command without any pre-configured scope.
 <tr>
 <td>
 
+`swish:allow-export-backup`
+
+</td>
+<td>
+
+Enables the export_backup command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:deny-export-backup`
+
+</td>
+<td>
+
+Denies the export_backup command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `swish:allow-finish-exit`
 
 </td>
@@ -140,6 +192,32 @@ Denies the finish_exit command without any pre-configured scope.
 <tr>
 <td>
 
+`swish:allow-inspect-backup`
+
+</td>
+<td>
+
+Enables the inspect_backup command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:deny-inspect-backup`
+
+</td>
+<td>
+
+Denies the inspect_backup command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `swish:allow-load-workspace`
 
 </td>
@@ -159,6 +237,32 @@ Enables the load_workspace command without any pre-configured scope.
 <td>
 
 Denies the load_workspace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:allow-restore-backup`
+
+</td>
+<td>
+
+Enables the restore_backup command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:deny-restore-backup`
+
+</td>
+<td>
+
+Denies the restore_backup command without any pre-configured scope.
 
 </td>
 </tr>
@@ -211,6 +315,32 @@ Enables the set_reminder_completed command without any pre-configured scope.
 <td>
 
 Denies the set_reminder_completed command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:allow-undo-restore`
+
+</td>
+<td>
+
+Enables the undo_restore command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`swish:deny-undo-restore`
+
+</td>
+<td>
+
+Denies the undo_restore command without any pre-configured scope.
 
 </td>
 </tr>

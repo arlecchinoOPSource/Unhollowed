@@ -39,6 +39,7 @@ const checks = {
   'shim installed and isTauri set (all)': [swish, terminal, ember].every(m => m.shim_installed === true && m.isTauri_in_frame === true),
   'Swish: project created through the real UI': swish.project_visible_in_swish_ui === true,
   'Swish: project stored through the plugin': swish.project_stored_via_plugin === true,
+  'Swish: backup/restore commands routed, undo refused when nothing was restored': swish.backup_commands_routed === true && swish.undo_without_restore_refused === true,
   'Swish: name field focused after the dialog opens': swish.focus_on_project_name_after_open === true,
   'Terminal: storage opened': terminal.storage_opened === true,
   'Terminal: text typed into the editor': terminal.body_text_typed === true,
