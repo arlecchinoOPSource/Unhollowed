@@ -6,7 +6,7 @@ The interface is envisioned as a solid metallic rack with three projector units 
 
 **Status:** foundation scaffold (U-03). A Tauri host named Unhollowed runs the real Swish web app inside an iframe through a small IPC shim, against Swish's real storage code, as the first slice. Terminal and Ember are not embedded yet, there is no rack artwork, CI runs the checks on macOS and Windows (docs/CI.md); packaging and release are not established. Builds are unsigned and there is no in-app updater. Follow [the backlog](docs/BACKLOG-DRAFT.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md) and [contributing](CONTRIBUTING.md). Track work in [GitHub issues](https://github.com/arlecchinoOPSource/Unhollowed/issues). The owner approves merges and releases.
 
-Use the private [Arlecchino Development board](https://github.com/users/arlecchinoOPSource/projects/3) to follow the backlog. Branch protection was not enforceable while the repository was private; the repository is now public and availability will be re-verified (U-04). Until then the owner approval and review gate is manual.
+Use the private [Arlecchino Development board](https://github.com/users/arlecchinoOPSource/projects/3) to follow the backlog. Branch protection is enabled on `main` (docs/CI.md): changes need a pull request and green `checks` on macOS and Windows; the owner's approval and the independent review stay a manual gate.
 
 ## Build and run (macOS verified; Windows not yet)
 
