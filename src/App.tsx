@@ -66,6 +66,7 @@ export function App() {
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
   return <main className="host">
+    <div className="host-top">
     <header className="host-bar">
       <h1>Unhollowed</h1>
       <nav aria-label="Projectors">
@@ -88,6 +89,7 @@ export function App() {
       <button type="button" className="power" onClick={() => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name as ModuleName)); }}>Keep it open</button>
       <button type="button" className="power" onClick={() => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.finishPowerOff(r, name as ModuleName)); }}>Power off anyway (unsaved changes are lost)</button>
     </div>)}
+    </div>
     <section className="stage" aria-label="Active modules" style={{ gridTemplateColumns: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))` }}>
       {shown.length
         ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={rack.front === module.name} leaving={leaving.includes(module.name)} onFront={bringToFront} />)

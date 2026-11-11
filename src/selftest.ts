@@ -222,7 +222,9 @@ async function runAll(): Promise<void> {
   await invoke('selftest_resize', { width: 800, height: 600 });
   await sleep(600);
   const widths = [...document.querySelectorAll('iframe')].map(f => f.contentWindow?.innerWidth ?? null);
-  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, frame_widths_after_resize: widths } });
+  const heights = [...document.querySelectorAll('iframe')].map(f => f.getBoundingClientRect().height);
+  const stage = document.querySelector('.stage')!.getBoundingClientRect();
+  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_bottom: stage.bottom } });
   await invoke('selftest_finish');
 }
 

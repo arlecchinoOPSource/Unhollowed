@@ -32,8 +32,10 @@ const close = results.close_handshake ?? {};
 const prefixed = module => module.all_calls_prefixed === true;
 const keys = module => new Set(module.local_storage_keys ?? []);
 const sharedKeys = [...keys(swish)].filter(key => keys(terminal).has(key) || keys(ember).has(key));
+const filled = (layout.frame_heights_after_resize ?? []).length === 3 && layout.stage_bottom >= layout.host_height - 2 && layout.frame_heights_after_resize.every(h => h >= layout.stage_height * 0.95) && layout.stage_height >= layout.host_height * 0.7;
 const checks = {
   'exit code 0': code === 0,
+  'the modules fill the window (no black band below them)': filled,
   'Swish rendered in the iframe': swish.root_rendered === true && swish.startup_finished === true,
   'Terminal rendered in the iframe': terminal.root_rendered === true && terminal.startup_finished === true,
   'Ember rendered in the iframe': ember.root_rendered === true && ember.startup_finished === true,
@@ -60,5 +62,5 @@ const checks = {
 };
 let failed = 0;
 for (const [name, ok] of Object.entries(checks)) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); if (!ok) failed++; }
-console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)} (host ${layout.host_width}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}, ember ${ember.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}, ember ${JSON.stringify(ember.local_storage_keys)}`);
+console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)}, heights ${JSON.stringify(layout.frame_heights_after_resize)} (host ${layout.host_width}x${layout.host_height}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}, ember ${ember.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}, ember ${JSON.stringify(ember.local_storage_keys)}`);
 process.exit(failed ? 1 : 0);
