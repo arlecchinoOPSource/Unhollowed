@@ -7,7 +7,7 @@ Issue: [U-04 (#5)](https://github.com/arlecchinoOPSource/Unhollowed/issues/5). W
 | Job | When | What it proves |
 | --- | --- | --- |
 | `checks (macos-latest)`, `checks (windows-latest)` | every pull request and push to `main` | `npm run check`: TypeScript, the JS tests (shim, pin checks), the web build, `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` for the whole workspace. The pinned Swish source is cloned without submodules and its manifests are verified, so no private repository is needed |
-| `native self-test (macOS, Windows)` | pushes to `main` and pull requests from this repository, when the secret `CORE_READ_KEY` exists (it does as of 2026-11-11) | builds the pinned Swish bundle and the host, then `npm run test:native`: a real window drives the real Swish UI with synthetic data and checks close handling. This is the first run of that test on Windows |
+| `native self-test` (macOS, Windows; independent of `checks`) | pushes to `main` and pull requests from this repository, when the secret `CORE_READ_KEY` exists (it does as of 2026-11-11) | builds the pinned Swish bundle and the host, then `npm run test:native`: a real window drives the real Swish UI with synthetic data and checks close handling. This is the first run of that test on Windows |
 
 Not covered: Linux (not a supported platform), UI tests of the rack (none exist yet), installers and packaging (U-29), accessibility and performance (U-28).
 
@@ -59,6 +59,6 @@ Zero required approvals keeps a single-owner repository workable while still for
 
 ## Known limits
 
-- The `macos-latest` arm64 pool was over capacity and its jobs were cancelled unscheduled on every attempt, so the workflow uses `macos-14`. A job that "was not acquired by Runner" is cancelled, not failed.
+- `macos-latest` is now macOS 26 arm64; its pool was over capacity and its jobs were cancelled unscheduled on every attempt, and `macos-14` is deprecated and rejected by GitHub ("configuration not supported"). The workflow therefore names `macos-15` (arm64). A job that "was not acquired by Runner" is cancelled, not failed.
 - The native self-test opens a window; if a runner session cannot show one, the job fails rather than skipping.
 - Windows is verified by this workflow only after the first green run; nothing in it has been exercised on Windows before CI.

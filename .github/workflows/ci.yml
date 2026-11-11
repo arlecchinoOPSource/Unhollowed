@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 # Third-party actions are pinned to full commit SHAs (docs/TESTING.md); the comment names the tag.
-# macos-14 is used instead of macos-latest: the macos-latest arm64 pool was over capacity and its jobs were
-# cancelled unscheduled on every attempt (2026-11-10 and -11).
+# macos-15 (arm64) is named explicitly: macos-latest is now macOS 26, whose pool was over capacity and cancelled
+# every job unscheduled (2026-11-10 and -11); macos-14 is deprecated and rejected ("configuration not supported").
 # actions/checkout            v4  11d5960a326750d5838078e36cf38b85af677262
 # actions/setup-node          v4  49933ea5288caeca8642d1e84afbd3f7d6820020
 # dtolnay/rust-toolchain      stable  b725eda525362e7cf34af9a7243cac1e3f01a7ec
@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-latest]
+        os: [macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -55,12 +55,11 @@ jobs:
   # while the secret does not exist.
   native-selftest:
     name: native self-test (${{ matrix.os }})
-    needs: checks
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-latest]
+        os: [macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
     env:
       CORE_KEY_SET: ${{ secrets.CORE_READ_KEY != '' }}
