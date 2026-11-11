@@ -77,13 +77,28 @@ jobs:
         id: pin
         shell: bash
         run: echo "sha=$(node -p "require('./modules.json').swish.sha")" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check out the pinned Swish (public, no submodules)
         if: env.CORE_KEY_SET == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: arlecchinoOPSource/Swish
           ref: ${{ steps.pin.outputs.sha }}
           path: .modules/swish
-          submodules: recursive
+          persist-credentials: false
+      # Same pattern as Swish's own CI: the checkout action only maps a submodule's https URL to the
+      # SSH key when credentials are persisted, so Core is fetched separately at the commit Swish pins.
+      - name: Read the Core commit Swish pins
+        if: env.CORE_KEY_SET == 'true'
+        id: core
+        shell: bash
+        run: echo "sha=$(git -C .modules/swish rev-parse HEAD:vendor/arlecchino-core)" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned private Core
+        if: env.CORE_KEY_SET == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: arlecchinoOPSource/Arlecchino-Core
+          ref: ${{ steps.core.outputs.sha }}
+          path: .modules/swish/vendor/arlecchino-core
           ssh-key: ${{ secrets.CORE_READ_KEY }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020

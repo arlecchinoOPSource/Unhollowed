@@ -7,7 +7,7 @@
 // Rust checks need. If the pinned commit is already checked out, nothing is fetched.
 // Private dependencies (Swish pulls Core as a submodule) need your own GitHub access when cloning.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, cpSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,8 +50,14 @@ function build(name, pin, { sourceOnly = false } = {}) {
     console.log(`verified ${name} ${pin.version} (${head.slice(0, 7)}), source only`);
     return;
   }
-  if (pin.submodules && out('git', ['submodule', 'status', '--recursive'], source).split('\n').some(line => line.startsWith('-'))) {
-    run('git', ['submodule', 'update', '--init', '--recursive', '--quiet'], source);
+  if (pin.submodules) {
+    // A submodule is missing when git marks it uninitialized ("-") and its folder is empty. CI fills the folder
+    // itself with its own credentials, so a populated folder is accepted as it is.
+    const missing = out('git', ['submodule', 'status', '--recursive'], source).split('\n')
+      .filter(line => line.startsWith('-'))
+      .map(line => line.trim().split(/\s+/)[1])
+      .filter(path => !existsSync(join(source, path)) || readdirSync(join(source, path)).length === 0);
+    if (missing.length) run('git', ['submodule', 'update', '--init', '--recursive', '--quiet'], source);
   }
 
   run('npm', ['ci', '--no-audit', '--no-fund'], source);
