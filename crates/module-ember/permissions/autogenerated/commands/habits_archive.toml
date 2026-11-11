@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-habits-archive"
+description = "Enables the habits_archive command without any pre-configured scope."
+commands.allow = ["habits_archive"]
+
+[[permission]]
+identifier = "deny-habits-archive"
+description = "Denies the habits_archive command without any pre-configured scope."
+commands.deny = ["habits_archive"]

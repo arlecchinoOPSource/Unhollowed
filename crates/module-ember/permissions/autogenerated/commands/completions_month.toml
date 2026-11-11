@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-completions-month"
+description = "Enables the completions_month command without any pre-configured scope."
+commands.allow = ["completions_month"]
+
+[[permission]]
+identifier = "deny-completions-month"
+description = "Denies the completions_month command without any pre-configured scope."
+commands.deny = ["completions_month"]

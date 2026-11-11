@@ -54,3 +54,10 @@ test('a label target becomes an AnyLabel target', async () => {
   await event.listen('x', () => {}, { target: 'main' });
   assert.deepEqual(hostCalls[0][1].target, { kind: 'AnyLabel', label: 'main' });
 });
+
+test('the window adapter gives a module no say over close: it registers nothing and returns a no-op unsubscribe', async () => {
+  const { getCurrentWindow } = await import(`../adapter/tauri-window.js?t=${Math.random()}`);
+  const unlisten = await getCurrentWindow().onCloseRequested(() => { throw new Error('must never be called'); });
+  assert.equal(typeof unlisten, 'function');
+  assert.equal(unlisten(), undefined);
+});

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-habits-delete-archived"
+description = "Enables the habits_delete_archived command without any pre-configured scope."
+commands.allow = ["habits_delete_archived"]
+
+[[permission]]
+identifier = "deny-habits-delete-archived"
+description = "Denies the habits_delete_archived command without any pre-configured scope."
+commands.deny = ["habits_delete_archived"]

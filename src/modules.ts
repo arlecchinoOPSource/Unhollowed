@@ -1,8 +1,9 @@
 /** Modules this build can embed. Keep in step with src-tauri/src/modules.rs. */
-export type ModuleName = 'swish' | 'terminal';
+export type ModuleName = 'swish' | 'terminal' | 'ember';
 
 export const MODULES: readonly { name: ModuleName; title: string }[] = [
   { name: 'terminal', title: 'Terminal' },
+  { name: 'ember', title: 'Ember' },
   { name: 'swish', title: 'Swish' },
 ];
 

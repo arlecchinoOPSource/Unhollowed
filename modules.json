@@ -22,5 +22,18 @@
       "src-tauri/Cargo.toml"
     ],
     "submodules": false
+  },
+  "ember": {
+    "repo": "https://github.com/arlecchinoOPSource/Ember-by-Arlecchino.git",
+    "sha": "610fa7f1d92bedf634402ae112102bf9ed6b563a",
+    "version": "2.0.2",
+    "identifier": "com.arlecchino.ember",
+    "appDir": "desktop",
+    "manifests": [
+      "desktop/package.json",
+      "desktop/src-tauri/tauri.conf.json",
+      "desktop/src-tauri/Cargo.toml"
+    ],
+    "submodules": false
   }
 }

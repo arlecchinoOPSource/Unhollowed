@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-startup-sound-native"
+description = "Enables the startup_sound_native command without any pre-configured scope."
+commands.allow = ["startup_sound_native"]
+
+[[permission]]
+identifier = "deny-startup-sound-native"
+description = "Denies the startup_sound_native command without any pre-configured scope."
+commands.deny = ["startup_sound_native"]

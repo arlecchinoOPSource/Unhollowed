@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/host-contract", "crates/module-swish", "crates/module-terminal"]
+members = ["src-tauri", "crates/host-contract", "crates/module-swish", "crates/module-terminal", "crates/module-ember"]
 exclude = [".modules"]
 resolver = "3"
 

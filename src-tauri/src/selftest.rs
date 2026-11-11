@@ -88,7 +88,11 @@ pub fn record_close(
         "timed_out": timed_out,
     });
     if let Some(root) = std::env::var_os("UNHLW_DATA_ROOT") {
-        for (name, file_name) in [("swish", "swish.sqlite3"), ("terminal", "journal.sqlite3")] {
+        for (name, file_name) in [
+            ("swish", "swish.sqlite3"),
+            ("terminal", "journal.sqlite3"),
+            ("ember", "ember.sqlite3"),
+        ] {
             if let Some(module) = crate::modules::find(name) {
                 let file = PathBuf::from(&root).join(module.identifier).join(file_name);
                 data[format!("{name}_database_exists")] = json!(file.exists());
