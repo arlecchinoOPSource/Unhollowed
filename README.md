@@ -10,6 +10,8 @@ Use the private [Arlecchino Development board](https://github.com/users/arlecchi
 
 ## Build and run (macOS verified; Windows not yet)
 
+For prerequisites, local checks, native self-tests and troubleshooting, see [Local macOS testing](docs/LOCAL_MACOS_TESTING.md).
+
 Needs Node 24, Rust 1.90 or newer, and your own GitHub access for the private Core repository (Swish pulls it as a submodule).
 
 ```sh
