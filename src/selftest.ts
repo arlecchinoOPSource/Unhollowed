@@ -7,7 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
  */
 let started = false;
 
-type Win = Window & typeof globalThis & { __unhlw?: { module: string; calls: string[] }; AudioContext: typeof AudioContext };
+type Win = Window & typeof globalThis & { __unhlw?: { module: string; calls: string[]; effective: boolean; hadOwnInternals: boolean; ownWritable: boolean | null; ownConfigurable: boolean | null; problem: string | null }; AudioContext: typeof AudioContext };
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function until<T>(what: string, probe: () => T | null | undefined | false, ms = 15000): Promise<T> {
@@ -30,6 +30,9 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     report.shim_installed = !!w.__unhlw;
     // A missing module bundle makes the dev server answer with the host's own page, which would look like a
     // rendered module. Stop at once with a clear reason instead.
+    report.shim_effective = w.__unhlw?.effective ?? null;
+    report.shim_details = w.__unhlw ? { hadOwnInternals: w.__unhlw.hadOwnInternals, ownWritable: w.__unhlw.ownWritable, ownConfigurable: w.__unhlw.ownConfigurable, problem: w.__unhlw.problem } : null;
+    if (w.__unhlw && !w.__unhlw.effective) throw new Error('the shim could not replace the Tauri internals the frame already has (WebView2 injects them into every frame); see shim_details');
     if (!w.__unhlw) throw new Error('the shim is not installed in the module frame: the Swish bundle is missing or was not built for the host');
     report.isTauri_in_frame = (w as unknown as { isTauri?: boolean }).isTauri === true;
     report.root_rendered = !!(await until('Swish root content', () => d.getElementById('root')?.childElementCount));
