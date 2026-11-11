@@ -87,16 +87,15 @@ pub fn record_close(
         "linger_ms": linger_ms,
         "timed_out": timed_out,
     });
-    if let (Some(root), Some(swish)) = (
-        std::env::var_os("UNHLW_DATA_ROOT"),
-        crate::modules::find("swish"),
-    ) {
-        let file = PathBuf::from(root)
-            .join(swish.identifier)
-            .join("swish.sqlite3");
-        data["swish_database_exists"] = json!(file.exists());
-        data["swish_database_bytes"] =
-            json!(std::fs::metadata(&file).map(|m| m.len()).unwrap_or(0));
+    if let Some(root) = std::env::var_os("UNHLW_DATA_ROOT") {
+        for (name, file_name) in [("swish", "swish.sqlite3"), ("terminal", "journal.sqlite3")] {
+            if let Some(module) = crate::modules::find(name) {
+                let file = PathBuf::from(&root).join(module.identifier).join(file_name);
+                data[format!("{name}_database_exists")] = json!(file.exists());
+                data[format!("{name}_database_bytes")] =
+                    json!(std::fs::metadata(&file).map(|m| m.len()).unwrap_or(0));
+            }
+        }
     }
     let _ = app;
     if let Ok(mut map) = results().lock() {

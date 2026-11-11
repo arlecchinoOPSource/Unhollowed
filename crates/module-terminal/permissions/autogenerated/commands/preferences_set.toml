@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-preferences-set"
+description = "Enables the preferences_set command without any pre-configured scope."
+commands.allow = ["preferences_set"]
+
+[[permission]]
+identifier = "deny-preferences-set"
+description = "Denies the preferences_set command without any pre-configured scope."
+commands.deny = ["preferences_set"]

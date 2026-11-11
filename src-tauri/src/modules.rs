@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use unhlw_host_contract::ModuleInfo;
 
 /// Modules available in this build.
-pub const MODULES: &[ModuleInfo] = &[tauri_plugin_swish::INFO];
+pub const MODULES: &[ModuleInfo] = &[tauri_plugin_swish::INFO, tauri_plugin_terminal::INFO];
 
 pub fn find(name: &str) -> Option<&'static ModuleInfo> {
     MODULES.iter().find(|module| module.name == name)
@@ -61,6 +61,9 @@ mod tests {
     fn swish_is_registered_with_its_standalone_identifier() {
         let swish = find("swish").expect("swish module");
         assert_eq!(swish.identifier, "com.arlecchino.swish");
+        let terminal = find("terminal").expect("terminal module");
+        assert_eq!(terminal.identifier, "com.arlecchino.terminal");
+        assert_eq!(terminal.close_event, "journal-close-requested");
         assert!(find("unknown").is_none());
     }
 }

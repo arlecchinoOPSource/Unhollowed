@@ -15,5 +15,5 @@ export function ModuleFrame({ name, title }: { name: ModuleName; title: string }
     void invoke('host_module_activated', { module: name });
     return () => { void invoke('host_module_deactivated', { module: name }); };
   }, [name]);
-  return <iframe ref={frame} className="module-frame" title={title} src={moduleUrl(name)} onLoad={() => void runSelfTest(frame.current)} />;
+  return <iframe ref={frame} className="module-frame" title={title} src={moduleUrl(name)} onLoad={() => void runSelfTest(name, frame.current)} />;
 }

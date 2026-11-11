@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-journal-finish-exit"
+description = "Enables the journal_finish_exit command without any pre-configured scope."
+commands.allow = ["journal_finish_exit"]
+
+[[permission]]
+identifier = "deny-journal-finish-exit"
+description = "Denies the journal_finish_exit command without any pre-configured scope."
+commands.deny = ["journal_finish_exit"]

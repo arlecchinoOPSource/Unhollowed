@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-journal-save"
+description = "Enables the journal_save command without any pre-configured scope."
+commands.allow = ["journal_save"]
+
+[[permission]]
+identifier = "deny-journal-save"
+description = "Denies the journal_save command without any pre-configured scope."
+commands.deny = ["journal_save"]

@@ -8,6 +8,8 @@ use tauri::Manager;
 
 pub fn run() {
     let app = tauri::Builder::default()
+        // Terminal's file dialogs (backup, export) use this plugin from Rust; no page may call it.
+        .plugin(tauri_plugin_dialog::init())
         .manage(lifecycle::Lifecycle::default())
         .on_window_event(|window, event| {
             // The host owns close: hold it while modules save (docs/HOST-CONTRACT-U35.md).
@@ -35,6 +37,14 @@ pub fn run() {
                 cfg!(debug_assertions),
             );
             app.handle().plugin(tauri_plugin_swish::init(swish_dir))?;
+            let terminal_dir = modules::module_data_dir(
+                &host_dir,
+                tauri_plugin_terminal::INFO.identifier,
+                override_root.as_deref(),
+                cfg!(debug_assertions),
+            );
+            app.handle()
+                .plugin(tauri_plugin_terminal::init(terminal_dir))?;
             lifecycle::listen_for_flush(app.handle());
             Ok(())
         })
@@ -95,12 +105,18 @@ mod tests {
             .iter()
             .filter_map(|p| p.as_str())
             .collect();
-        for command in tauri_plugin_swish::COMMANDS {
-            let permission = format!("swish:allow-{}", command.replace('_', "-"));
-            assert!(
-                granted.contains(&permission.as_str()),
-                "{permission} is not granted"
-            );
+        let modules: [(&str, &[&str]); 2] = [
+            ("swish", tauri_plugin_swish::COMMANDS),
+            ("terminal", tauri_plugin_terminal::COMMANDS),
+        ];
+        for (plugin, commands) in modules {
+            for command in commands {
+                let permission = format!("{plugin}:allow-{}", command.replace('_', "-"));
+                assert!(
+                    granted.contains(&permission.as_str()),
+                    "{permission} is not granted"
+                );
+            }
         }
     }
 }

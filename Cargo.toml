@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/host-contract", "crates/module-swish"]
+members = ["src-tauri", "crates/host-contract", "crates/module-swish", "crates/module-terminal"]
 exclude = [".modules"]
 resolver = "3"
 
@@ -16,3 +16,4 @@ tauri-build = { version = "2.7.4", features = [] }
 tauri-plugin = { version = "2.7.2", features = ["build"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tauri-plugin-dialog = "2.8.3"
