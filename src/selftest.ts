@@ -76,6 +76,13 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
   } catch (error) {
     report.ok = false;
     report.error = String(error);
+    // Say what the module looked like when it failed, so a CI log is enough to diagnose it.
+    try {
+      const w = frame.contentWindow as Win;
+      report.failure_page_text = (frame.contentDocument?.body.innerText ?? '').replace(/\s+/g, ' ').slice(0, 400);
+      report.failure_ipc_calls = w.__unhlw?.calls ?? [];
+      report.failure_load_workspace = await invoke('plugin:swish|load_workspace').then(v => `ok: ${JSON.stringify(v).slice(0, 120)}`, e => `error: ${JSON.stringify(e).slice(0, 300)}`);
+    } catch (inner) { report.failure_diagnostics_error = String(inner); }
   }
   await invoke('selftest_report', { name: 'slice', data: report });
   await invoke('selftest_finish');
