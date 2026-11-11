@@ -13,8 +13,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pins = JSON.parse(readFileSync(join(root, 'modules.json'), 'utf8'));
-const run = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
-const out = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, encoding: 'utf8' }).trim();
+// On Windows npm and npx are .cmd shims, which Node will not spawn without a shell. Only these two fixed
+// command names get one, with fixed arguments.
+const shell = cmd => process.platform === 'win32' && (cmd === 'npm' || cmd === 'npx');
+const run = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, stdio: 'inherit', shell: shell(cmd) });
+const out = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, encoding: 'utf8', shell: shell(cmd) }).trim();
 
 /** The version in a manifest, however it is written. */
 export function versionOf(file, text) {

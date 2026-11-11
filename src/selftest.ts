@@ -28,6 +28,9 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     const w = frame.contentWindow as Win;
     const d = frame.contentDocument!;
     report.shim_installed = !!w.__unhlw;
+    // A missing module bundle makes the dev server answer with the host's own page, which would look like a
+    // rendered module. Stop at once with a clear reason instead.
+    if (!w.__unhlw) throw new Error('the shim is not installed in the module frame: the Swish bundle is missing or was not built for the host');
     report.isTauri_in_frame = (w as unknown as { isTauri?: boolean }).isTauri === true;
     report.root_rendered = !!(await until('Swish root content', () => d.getElementById('root')?.childElementCount));
     // Swish shows its startup screen for at least 2.2 s; wait for it to leave.

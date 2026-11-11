@@ -114,8 +114,10 @@ jobs:
         run: npm ci
       - name: Build the pinned Swish bundle and the host
         if: env.CORE_KEY_SET == 'true'
+        shell: bash   # stops at the first failing command (PowerShell would carry on)
         run: |
           npm run build:modules
+          test -f public/modules/swish/index.html
           npm run build:web
           cargo build -p unhollowed --features custom-protocol
       - name: Native self-test (opens a window, synthetic data)
