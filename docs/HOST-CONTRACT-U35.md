@@ -27,6 +27,8 @@ Two things the shim needed, both learned the hard way: `isTauri()` in `@tauri-ap
 
 **Core's global side effects are per document.** Core's resets, motion attribute, key listeners and modal portal act on the document they run in. Inside an iframe that is the module's own document, so they cannot disturb the host or another module (this follows from option C; only theme independence was observed directly).
 
+> **Update 2026-11-11:** the run-time shim described here could not replace the iframe's Tauri internals on Windows (WebView2). Command routing is now done by build-time adapters (`adapter/`); see [DECISIONS.md](DECISIONS.md) and [SLICE-U03.md](SLICE-U03.md). The rest of this document stands.
+
 ## Decisions (approved by the product owner, 2026-11-10)
 
 1. **UNHLW owns the host contract.** It consists of: the iframe shim and a small message protocol for activation, visibility and flush/release (TypeScript, in UNHLW); and a Rust module convention (a Tauri plugin per module, built with an injected data directory) with the host-side adapter code (in UNHLW). Core stays UI-only. The apps do **not** depend on UNHLW; UNHLW wraps what they expose, so standalone builds are unaffected.

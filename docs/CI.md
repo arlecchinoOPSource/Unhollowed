@@ -61,4 +61,4 @@ Zero required approvals keeps a single-owner repository workable while still for
 
 - `macos-latest` is now macOS 26 arm64; its pool was over capacity and its jobs were cancelled unscheduled on every attempt, and `macos-14` is deprecated and rejected by GitHub ("configuration not supported"). The workflow therefore names `macos-15` (arm64). A job that "was not acquired by Runner" is cancelled, not failed.
 - The native self-test opens a window; if a runner session cannot show one, the job fails rather than skipping.
-- Windows is verified by this workflow only after the first green run; nothing in it has been exercised on Windows before CI.
+- Both `checks` jobs and both native self-tests passed on macOS-15 and Windows in run 42953004601 (2026-11-11). Windows uses a different web view (WebView2) from macOS (WKWebView); keep both in the matrix.
