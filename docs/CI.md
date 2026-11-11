@@ -1,13 +1,15 @@
 # Continuous integration
 
+**macOS is not tested on GitHub.** Since 2026-11-11 the standard macOS procedure is [Local macOS testing](LOCAL_MACOS_TESTING.md), reported in each PR. The macOS jobs were removed from the workflow and from the required checks; Windows runs here. Older notes below that mention macOS runners are history.
+
 Issue: [U-04 (#5)](https://github.com/arlecchinoOPSource/Unhollowed/issues/5). Workflow: `.github/workflows/ci.yml`. It runs only commands that exist in this repository (see the README).
 
 ## What runs
 
 | Job | When | What it proves |
 | --- | --- | --- |
-| `checks (macos-latest)`, `checks (windows-latest)` | every pull request and push to `main` | `npm run check`: TypeScript, the JS tests (shim, pin checks), the web build, `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` for the whole workspace. The pinned Swish source is cloned without submodules and its manifests are verified, so no private repository is needed |
-| `native self-test` (macOS, Windows; independent of `checks`) | pushes to `main` and pull requests from this repository, when the secret `CORE_READ_KEY` exists (it does as of 2026-11-11) | builds the pinned Swish bundle and the host, then `npm run test:native`: a real window drives the real Swish UI with synthetic data and checks close handling. This is the first run of that test on Windows |
+| `checks (windows-latest)` | every pull request and push to `main` | `npm run check`: TypeScript, the JS tests (shim, pin checks), the web build, `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` for the whole workspace. The pinned Swish source is cloned without submodules and its manifests are verified, so no private repository is needed |
+| `native self-test` (Windows; independent of `checks`) | pushes to `main` and pull requests from this repository, when the secret `CORE_READ_KEY` exists (it does as of 2026-11-11) | builds the pinned Swish bundle and the host, then `npm run test:native`: a real window drives the real Swish UI with synthetic data and checks close handling. This is the first run of that test on Windows |
 
 Not covered: Linux (not a supported platform), UI tests of the rack (none exist yet), installers and packaging (U-29), accessibility and performance (U-28).
 
@@ -45,7 +47,7 @@ Enabled on `main` on 2026-11-11 at the owner's request, with the rule below. It 
 | Setting | Value |
 | --- | --- |
 | Pull request required | yes, **0** approving reviews (single-owner repository) |
-| Required status checks | `checks (macos-15)`, `checks (windows-latest)`; not strict (a branch need not be up to date) |
+| Required status checks | `checks (windows-latest)`; not strict (a branch need not be up to date) |
 | Force-pushes, deletion | blocked |
 | Applies to administrators | **no** (`enforce_admins: false`), so the owner and tools signed in as the owner can still push or merge past a failing check |
 
@@ -54,7 +56,7 @@ The native self-tests are deliberately **not** required: they need the Core key,
 ```sh
 gh api -X PUT repos/arlecchinoOPSource/Unhollowed/branches/main/protection --input - <<'JSON'
 {
-  "required_status_checks": { "strict": false, "contexts": ["checks (macos-15)", "checks (windows-latest)"] },
+  "required_status_checks": { "strict": false, "contexts": ["checks (windows-latest)"] },
   "enforce_admins": false,
   "required_pull_request_reviews": { "required_approving_review_count": 0 },
   "restrictions": null,

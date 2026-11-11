@@ -1,6 +1,6 @@
 # Local macOS testing
 
-GitHub-hosted macOS runners can queue for a long time or be cancelled before a job starts. Running the same repository commands on a Mac gives faster feedback. It supplements independent CI; it does not replace the required GitHub checks or Windows testing.
+**This is the standard macOS test procedure for this repository.** GitHub-hosted macOS runners queued for up to 15 minutes or were cancelled before any step ran, so macOS is no longer tested in GitHub Actions. Every change that can affect the host runs these commands on a Mac and reports the result in its PR (see Reporting). GitHub Actions still tests Windows and remains a required check. Local macOS results are reported by the author; they are not independently verified.
 
 This guide describes the commands in `package.json` and `.github/workflows/ci.yml` at this revision. Run them from the repository root. Stop on a failed command and report the failure; do not interpret a skipped or incomplete check as a pass.
 
@@ -87,6 +87,20 @@ For a release-mode application compilation without an installer, the existing co
 4. Record each command, result, macOS version and architecture. State whether the native window actually ran, and report any failure, skipped check, missing access or infrastructure limitation accurately.
 5. Commit and push only after the required local checks pass unless explicitly instructed otherwise. Follow the repository's branch, review and owner-approval rules; local success does not authorize a merge.
 
+## Reporting
+
+Put this in the PR description, filled from the real run:
+
+```text
+macOS <sw_vers -productVersion>, <uname -m>; Node <v>, Rust <v>
+Commit tested: <git rev-parse --short HEAD>   Pins verified: swish <sha>, terminal <sha>, Core hashes match: yes/no
+npm run check: pass/fail
+npm run test:native: pass/fail/not run (reason); window really opened: yes/no
+Limitations: <anything skipped or not covered>
+```
+
+Run it on the final commit of the PR; rerun after any later change that touches code, pins or the lockfile. A check that was not run is reported as not run.
+
 ## Troubleshooting
 
 - **Missing tools:** check `git --version`, `node --version`, `npm --version`, `rustc --version`, `cargo --version`, `xcode-select -p` and `clang --version`. Install the missing prerequisite and open a new terminal if its PATH changed.
@@ -102,7 +116,7 @@ For a release-mode application compilation without an installer, the existing co
 
 | | Local Mac | GitHub Actions |
 | --- | --- | --- |
-| Environment | Your macOS version, architecture, tools and desktop session | Fresh `macos-15` Apple Silicon runner for each job; Windows is a separate matrix entry |
+| Environment | Your macOS version, architecture, tools and desktop session | Fresh Windows runner for each job (macOS is not run there) |
 | Availability and speed | No hosted-runner queue; depends on your machine and downloads | Can queue or be cancelled for infrastructure or concurrency reasons |
 | Cache | Existing npm, Rust and build caches may speed subsequent runs and can hide clean-build differences | Node's npm cache is configured; jobs still set up their tools and checkout independently |
 | Reproducibility | Record tool versions, commit and pins; local machine state varies | Workflow defines the steps and pins Actions, but stable Rust and hosted images can change |
