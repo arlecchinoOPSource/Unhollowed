@@ -8,6 +8,7 @@
   "permissions": [
     "allow-host-module-activated",
     "allow-host-module-deactivated",
+    "allow-host-power-off",
     "allow-selftest-enabled",
     "allow-selftest-report",
     "allow-selftest-resize",

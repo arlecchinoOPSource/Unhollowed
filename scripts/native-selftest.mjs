@@ -27,6 +27,7 @@ const swish = results.slice ?? {};
 const terminal = results.terminal ?? {};
 const ember = results.ember ?? {};
 const layout = results.layout ?? {};
+const life = results.lifecycle ?? {};
 const close = results.close_handshake ?? {};
 const prefixed = module => module.all_calls_prefixed === true;
 const keys = module => new Set(module.local_storage_keys ?? []);
@@ -47,6 +48,10 @@ const checks = {
   'Terminal: entry stored through the plugin': terminal.entry_stored_via_plugin === true,
   'Ember: habit created through the real UI': ember.habit_visible_in_ember_ui === true,
   'Ember: habit stored through the plugin': ember.habit_stored_via_plugin === true,
+  'U-11: switching modules keeps the frame, its page state and its running timer': life.same_frame_after_navigation === true && life.page_state_kept_in_background === true && life.timer_kept_running_in_background === true,
+  'U-11: a background module cannot take focus; the module in front can': life.background_focus_blocked === true && life.front_focus_allowed === true && life.front_is_terminal === true,
+  'U-11: power-off saved first, removed only that frame, and was refused when repeated': life.ember_confirmed_save === true && life.ember_frame_removed === true && life.others_untouched === true && life.power_off_again_is_refused === true,
+  'U-11: a power-on is a new frame, and the habit survived the power cycle': life.new_frame_after_power_on === true && life.habit_survived_power_cycle === true && life.ok === true,
   'every command was routed to its plugin (all)': prefixed(swish) && prefixed(terminal) && prefixed(ember),
   'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme && ember.frame_theme !== ember.host_theme,
   'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,

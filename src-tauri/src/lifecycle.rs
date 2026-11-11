@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use unhlw_host_contract::{FLUSH_EVENT, Flushed, MAX_LINGER_MS};
 
@@ -39,9 +40,96 @@ pub fn linger_ms(active: &HashSet<String>, flushed: &HashMap<String, u64>) -> u6
         .min(MAX_LINGER_MS)
 }
 
+/// Polls `probe` until it reports a value or `max` has passed. Returns the value (if any) and the time waited.
+pub fn wait_for(
+    mut probe: impl FnMut() -> Option<u64>,
+    max: Duration,
+    poll: Duration,
+) -> (Option<u64>, u64) {
+    let started = Instant::now();
+    loop {
+        if let Some(value) = probe() {
+            return (Some(value), started.elapsed().as_millis() as u64);
+        }
+        if started.elapsed() >= max {
+            return (None, started.elapsed().as_millis() as u64);
+        }
+        std::thread::sleep(poll);
+    }
+}
+
+/// What a per-module power-off found out.
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PowerOff {
+    /// The module confirmed that it saved. When false it is still running and nothing was removed.
+    pub flushed: bool,
+    pub waited_ms: u64,
+    /// How long its close sound should be left to play before the frame is removed (capped).
+    pub linger_ms: u64,
+}
+
+/// Asks one module to save and waits for its confirmation. It never removes the module: the page removes the
+/// frame only after `flushed` is true, so a module that did not answer keeps its unsaved work.
+#[tauri::command]
+pub async fn host_power_off(app: AppHandle, module: String) -> Result<PowerOff, String> {
+    let info = modules::find(&module).ok_or("Unknown module.")?;
+    {
+        let state = app.state::<Lifecycle>();
+        if !state
+            .active
+            .lock()
+            .map_err(|_| "Lifecycle unavailable.")?
+            .contains(&module)
+        {
+            return Err("That module is not on.".into());
+        }
+        if state.closing.load(Ordering::SeqCst) {
+            return Err("The app is closing.".into());
+        }
+        // A report left over from before must not count as this module's answer.
+        state
+            .flushed
+            .lock()
+            .map_err(|_| "Lifecycle unavailable.")?
+            .remove(&module);
+    }
+    app.emit_to("main", info.close_event, ())
+        .map_err(|error| error.to_string())?;
+    let handle = app.clone();
+    let name = module.clone();
+    let (answer, waited_ms) = tauri::async_runtime::spawn_blocking(move || {
+        wait_for(
+            || {
+                let state = handle.state::<Lifecycle>();
+                state.flushed.lock().ok()?.get(&name).copied()
+            },
+            Duration::from_millis(MAX_WAIT_MS),
+            Duration::from_millis(25),
+        )
+    })
+    .await
+    .map_err(|error| error.to_string())?;
+    // Whatever happened, drop the report: a late one must not satisfy a later close.
+    if let Ok(mut flushed) = app.state::<Lifecycle>().flushed.lock() {
+        flushed.remove(&module);
+    }
+    Ok(PowerOff {
+        flushed: answer.is_some(),
+        waited_ms,
+        linger_ms: answer.unwrap_or(0).min(MAX_LINGER_MS),
+    })
+}
+
 #[tauri::command]
 pub fn host_module_activated(state: State<'_, Lifecycle>, module: String) -> Result<(), String> {
     modules::find(&module).ok_or("Unknown module.")?;
+    // A fresh frame starts with no report: one left from an earlier run must not count as its answer.
+    state
+        .flushed
+        .lock()
+        .map_err(|_| "Lifecycle unavailable.")?
+        .remove(&module);
     state
         .active
         .lock()
@@ -80,6 +168,10 @@ pub fn begin_close(app: &AppHandle) {
         return;
     }
     let active = state.active.lock().map(|a| a.clone()).unwrap_or_default();
+    // Only reports sent in answer to this request count.
+    if let Ok(mut flushed) = state.flushed.lock() {
+        flushed.clear();
+    }
     for name in &active {
         if let Some(module) = modules::find(name) {
             let _ = app.emit_to("main", module.close_event, ());
@@ -140,6 +232,29 @@ mod tests {
         assert!(!all_flushed(&active, &flushed));
         flushed.insert("ember".to_string(), 0);
         assert!(all_flushed(&active, &flushed));
+    }
+
+    #[test]
+    fn wait_returns_as_soon_as_the_probe_answers() {
+        let mut calls = 0;
+        let (answer, _) = wait_for(
+            || {
+                calls += 1;
+                (calls == 3).then_some(1200)
+            },
+            Duration::from_secs(5),
+            Duration::from_millis(1),
+        );
+        assert_eq!(answer, Some(1200));
+        assert_eq!(calls, 3);
+    }
+
+    #[test]
+    fn wait_gives_up_without_an_answer_after_the_limit() {
+        let (answer, waited) =
+            wait_for(|| None, Duration::from_millis(30), Duration::from_millis(5));
+        assert_eq!(answer, None);
+        assert!(waited >= 30);
     }
 
     #[test]
