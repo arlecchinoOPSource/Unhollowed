@@ -8,7 +8,7 @@ import type { ModuleName } from './modules';
  * it starts the same close sequence a user's close would.
  */
 const started = new Set<ModuleName>();
-const EXPECTED: ModuleName[] = ['terminal', 'swish'];
+const EXPECTED: ModuleName[] = ['terminal', 'ember', 'swish'];
 
 type Unhlw = { module: string; calls: string[]; effective: boolean; hadOwnInternals: boolean; ownWritable: boolean | null; ownConfigurable: boolean | null; problem: string | null };
 type Win = Window & typeof globalThis & { __unhlw?: Unhlw; AudioContext: typeof AudioContext };
@@ -101,6 +101,23 @@ async function terminal(frame: HTMLIFrameElement, report: Record<string, unknown
   tail(w, report);
 }
 
+async function ember(frame: HTMLIFrameElement, report: Record<string, unknown>) {
+  const { w, d } = await common(frame, report);
+  const button = (label: string) => [...d.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === label || b.textContent?.trim() === label);
+
+  (await until('Add habit button', () => button('Add habit'))).click();
+  const name = await until('Habit name field', () => d.querySelector<HTMLInputElement>('#new-habit-name'));
+  setValue(w, name, 'Ember synthetic habit');
+  (await until('Save habit button', () => button('Save habit'))).click();
+  await until('created habit in the grid', () => [...d.querySelectorAll('.habit-name')].some(h => h.textContent === 'Ember synthetic habit'));
+  report.habit_visible_in_ember_ui = true;
+
+  // Read it back through the module's own command, the way the app would after a restart.
+  const listed = JSON.stringify(await invoke('plugin:ember|habits_list'));
+  report.habit_stored_via_plugin = listed.includes('Ember synthetic habit');
+  tail(w, report);
+}
+
 /** Frames wait here until every expected module has loaded, then the probes run one module at a time. */
 const frames = new Map<ModuleName, HTMLIFrameElement>();
 let running: Promise<void> | null = null;
@@ -108,7 +125,7 @@ let running: Promise<void> | null = null;
 async function probe(name: ModuleName, frame: HTMLIFrameElement): Promise<void> {
   const report: Record<string, unknown> = {};
   try {
-    await (name === 'swish' ? swish : terminal)(frame, report);
+    await ({ swish, terminal, ember }[name])(frame, report);
     report.ok = true;
   } catch (error) {
     report.ok = false;

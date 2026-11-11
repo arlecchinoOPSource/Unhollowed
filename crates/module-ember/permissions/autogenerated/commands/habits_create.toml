@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-habits-create"
+description = "Enables the habits_create command without any pre-configured scope."
+commands.allow = ["habits_create"]
+
+[[permission]]
+identifier = "deny-habits-create"
+description = "Denies the habits_create command without any pre-configured scope."
+commands.deny = ["habits_create"]

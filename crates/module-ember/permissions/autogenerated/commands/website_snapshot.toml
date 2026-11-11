@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-website-snapshot"
+description = "Enables the website_snapshot command without any pre-configured scope."
+commands.allow = ["website_snapshot"]
+
+[[permission]]
+identifier = "deny-website-snapshot"
+description = "Denies the website_snapshot command without any pre-configured scope."
+commands.deny = ["website_snapshot"]

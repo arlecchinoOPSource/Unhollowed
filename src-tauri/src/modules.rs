@@ -5,7 +5,11 @@ use std::path::{Path, PathBuf};
 use unhlw_host_contract::ModuleInfo;
 
 /// Modules available in this build.
-pub const MODULES: &[ModuleInfo] = &[tauri_plugin_swish::INFO, tauri_plugin_terminal::INFO];
+pub const MODULES: &[ModuleInfo] = &[
+    tauri_plugin_swish::INFO,
+    tauri_plugin_terminal::INFO,
+    tauri_plugin_ember::INFO,
+];
 
 pub fn find(name: &str) -> Option<&'static ModuleInfo> {
     MODULES.iter().find(|module| module.name == name)
@@ -64,6 +68,9 @@ mod tests {
         let terminal = find("terminal").expect("terminal module");
         assert_eq!(terminal.identifier, "com.arlecchino.terminal");
         assert_eq!(terminal.close_event, "journal-close-requested");
+        let ember = find("ember").expect("ember module");
+        assert_eq!(ember.identifier, "com.arlecchino.ember");
+        assert_eq!(ember.close_event, "ember:exit-requested");
         assert!(find("unknown").is_none());
     }
 }

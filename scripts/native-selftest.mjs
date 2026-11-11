@@ -25,16 +25,18 @@ console.log(JSON.stringify(results, null, 2));
 
 const swish = results.slice ?? {};
 const terminal = results.terminal ?? {};
+const ember = results.ember ?? {};
 const layout = results.layout ?? {};
 const close = results.close_handshake ?? {};
 const prefixed = module => module.all_calls_prefixed === true;
 const keys = module => new Set(module.local_storage_keys ?? []);
-const sharedKeys = [...keys(swish)].filter(key => keys(terminal).has(key));
+const sharedKeys = [...keys(swish)].filter(key => keys(terminal).has(key) || keys(ember).has(key));
 const checks = {
   'exit code 0': code === 0,
   'Swish rendered in the iframe': swish.root_rendered === true && swish.startup_finished === true,
   'Terminal rendered in the iframe': terminal.root_rendered === true && terminal.startup_finished === true,
-  'shim installed and isTauri set (both)': [swish, terminal].every(m => m.shim_installed === true && m.isTauri_in_frame === true),
+  'Ember rendered in the iframe': ember.root_rendered === true && ember.startup_finished === true,
+  'shim installed and isTauri set (all)': [swish, terminal, ember].every(m => m.shim_installed === true && m.isTauri_in_frame === true),
   'Swish: project created through the real UI': swish.project_visible_in_swish_ui === true,
   'Swish: project stored through the plugin': swish.project_stored_via_plugin === true,
   'Swish: name field focused after the dialog opens': swish.focus_on_project_name_after_open === true,
@@ -42,13 +44,15 @@ const checks = {
   'Terminal: text typed into the editor': terminal.body_text_typed === true,
   'Terminal: entry saved (UI says Saved)': terminal.entry_saved_in_terminal_ui === true,
   'Terminal: entry stored through the plugin': terminal.entry_stored_via_plugin === true,
-  'every command was routed to its plugin (both)': prefixed(swish) && prefixed(terminal),
-  'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme,
-  'no localStorage key shared by the two modules (informational: both were empty at that point)': sharedKeys.length === 0,
-  'close handshake: both modules flushed before exit': close.timed_out === false && ['swish', 'terminal'].every(m => (close.active_modules ?? []).includes(m)),
-  'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0,
+  'Ember: habit created through the real UI': ember.habit_visible_in_ember_ui === true,
+  'Ember: habit stored through the plugin': ember.habit_stored_via_plugin === true,
+  'every command was routed to its plugin (all)': prefixed(swish) && prefixed(terminal) && prefixed(ember),
+  'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme && ember.frame_theme !== ember.host_theme,
+  'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,
+  'close handshake: all modules flushed before exit': close.timed_out === false && ['swish', 'terminal', 'ember'].every(m => (close.active_modules ?? []).includes(m)),
+  'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,
 };
 let failed = 0;
 for (const [name, ok] of Object.entries(checks)) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); if (!ok) failed++; }
-console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)} (host ${layout.host_width}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}`);
+console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)} (host ${layout.host_width}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}, ember ${ember.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}, ember ${JSON.stringify(ember.local_storage_keys)}`);
 process.exit(failed ? 1 : 0);

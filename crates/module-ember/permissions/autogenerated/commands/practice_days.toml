@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-practice-days"
+description = "Enables the practice_days command without any pre-configured scope."
+commands.allow = ["practice_days"]
+
+[[permission]]
+identifier = "deny-practice-days"
+description = "Denies the practice_days command without any pre-configured scope."
+commands.deny = ["practice_days"]

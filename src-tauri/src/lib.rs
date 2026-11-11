@@ -45,6 +45,13 @@ pub fn run() {
             );
             app.handle()
                 .plugin(tauri_plugin_terminal::init(terminal_dir))?;
+            let ember_dir = modules::module_data_dir(
+                &host_dir,
+                tauri_plugin_ember::INFO.identifier,
+                override_root.as_deref(),
+                cfg!(debug_assertions),
+            );
+            app.handle().plugin(tauri_plugin_ember::init(ember_dir))?;
             lifecycle::listen_for_flush(app.handle());
             Ok(())
         })
@@ -105,9 +112,10 @@ mod tests {
             .iter()
             .filter_map(|p| p.as_str())
             .collect();
-        let modules: [(&str, &[&str]); 2] = [
+        let modules: [(&str, &[&str]); 3] = [
             ("swish", tauri_plugin_swish::COMMANDS),
             ("terminal", tauri_plugin_terminal::COMMANDS),
+            ("ember", tauri_plugin_ember::COMMANDS),
         ];
         for (plugin, commands) in modules {
             for command in commands {

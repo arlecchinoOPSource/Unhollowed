@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-habits-delete-preview"
+description = "Enables the habits_delete_preview command without any pre-configured scope."
+commands.allow = ["habits_delete_preview"]
+
+[[permission]]
+identifier = "deny-habits-delete-preview"
+description = "Denies the habits_delete_preview command without any pre-configured scope."
+commands.deny = ["habits_delete_preview"]
