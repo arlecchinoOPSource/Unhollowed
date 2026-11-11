@@ -4,7 +4,23 @@
     "sha": "c1908c2ac19d7ae3c00ea0c16df2eb0c6f1ca360",
     "version": "2.0.1",
     "identifier": "com.arlecchino.swish",
-    "manifests": ["package.json", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml"],
+    "manifests": [
+      "package.json",
+      "src-tauri/tauri.conf.json",
+      "src-tauri/Cargo.toml"
+    ],
     "submodules": true
+  },
+  "terminal": {
+    "repo": "https://github.com/arlecchinoOPSource/Arlecchino-s-Terminal-Journal.git",
+    "sha": "d0f0e1eb14de0bdc303d05319c7682c1ded67eac",
+    "version": "2.0.1",
+    "identifier": "com.arlecchino.terminal",
+    "manifests": [
+      "package.json",
+      "src-tauri/tauri.conf.json",
+      "src-tauri/Cargo.toml"
+    ],
+    "submodules": false
   }
 }

@@ -58,7 +58,7 @@ People who already use, or want to use, the Arlecchino tools together. Supported
 
 | Module | Identifier | Data file | Today | Needed from its repo |
 | --- | --- | --- | --- | --- |
-| Terminal | `com.arlecchino.terminal` | `journal.sqlite3` | 2.0.1, library crate whose `run()` starts the whole app; revision-checked saves | Plugin builder with injected data directory (U-06) |
+| Terminal | `com.arlecchino.terminal` | `journal.sqlite3` | 2.0.1; embedded as a module (U-06, [TERMINAL-U06.md](TERMINAL-U06.md)) using its own commands via an upstream seam; revision-checked saves | Merge Terminal PR #70; exercise backup, export and sound inside the host |
 | Ember | `com.arlecchino.ember` | `ember.sqlite3` (+ `sound.json`, `Exports/`) | 2.0.1 source (release v2.0.2 unreconciled, Ember#35); library crate with `run()`; own suite-ui 0.2.0 | Same (U-08); decide host-vs-module audio |
 | Swish | `com.arlecchino.swish` | `swish.sqlite3` | 2.0.1 on `main`; Tauri-free data crate, binary-only app crate; `rusqlite 0.37` | Library target plus plugin builder (U-10); `rusqlite` 0.41 (Swish#35) |
 

@@ -1,0 +1,19 @@
+[package]
+name = "tauri-plugin-terminal"
+description = "Unhollowed module adapter for Terminal: registers Terminal's own commands behind the host contract"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+links = "tauri-plugin-terminal"
+
+[build-dependencies]
+tauri-plugin = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+serde_json = { workspace = true }
+unhlw-host-contract = { path = "../host-contract" }
+# Terminal's own library (journal, storage, backup, shared commands). `npm run build:modules` clones Terminal at the
+# commit pinned in modules.json (manifests verified) into .modules/terminal; no code is copied.
+terminal-journal = { path = "../../.modules/terminal/src-tauri", default-features = false }
