@@ -1,7 +1,7 @@
 {
   "swish": {
     "repo": "https://github.com/arlecchinoOPSource/Swish.git",
-    "sha": "c29ded9685457fa62c7f3f74d992e9f91683c1d0",
+    "sha": "c32d85cb986686cdea1c47563356caee7d759517",
     "version": "2.0.1",
     "identifier": "com.arlecchino.swish",
     "manifests": [

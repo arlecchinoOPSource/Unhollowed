@@ -14,7 +14,7 @@ Issue: [U-12 (#12)](https://github.com/arlecchinoOPSource/Unhollowed/issues/12).
 
 The host resolved all three folders under the one synthetic root as `<root>/<identifier>/`, as decided in U-33.
 
-**Finding F1 — Swish's data is not private.** Terminal and Ember set `0700`/`0600` explicitly and have tests for it (Terminal `storage.rs`, Ember `storage.rs`). Swish sets nothing and inherits the umask, so its folder and files are world-readable on a default macOS umask. Whether another local account can reach them depends on the parent folders (`~/Library/Application Support` is normally inside a home folder other users cannot enter), so this is defence in depth, not an open door. The fix belongs in Swish (set the modes as the others do); it is not part of the host.
+**Finding F1 — Swish's data was not private (fixed: Swish PR 39, pinned from `c32d85c`; the native test now fails if any module's folder or file is group- or world-accessible).** Terminal and Ember set `0700`/`0600` explicitly and have tests for it (Terminal `storage.rs`, Ember `storage.rs`). Swish sets nothing and inherits the umask, so its folder and files are world-readable on a default macOS umask. Whether another local account can reach them depends on the parent folders (`~/Library/Application Support` is normally inside a home folder other users cannot enter), so this is defence in depth, not an open door. The fix belongs in Swish (set the modes as the others do); it is not part of the host.
 
 ## Schemas and pragmas (measured from the real files)
 
