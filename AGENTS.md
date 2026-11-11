@@ -1,5 +1,7 @@
 # Agent operating guide
 
+For local macOS validation and reporting, follow [Local macOS testing](docs/LOCAL_MACOS_TESTING.md).
+
 UNHLW is a local-first integrated desktop host, not a launcher. Preserve the standalone applications, user data and the product owner's control of direction, merges and releases. Read the assigned issue, README, relevant docs and any more specific instructions before changing code. Treat current capabilities and proposals separately.
 
 Use one branch and one primary implementing agent per issue. Coordinate shared files; open a focused PR with an independent review and do not merge without the owner's approval. Do not modify other Arlecchino repositories unless the assigned issue explicitly requires it. Never commit credentials or real personal data. Use synthetic fixtures, reversible migrations and tested backups; don't assume concurrent database access is safe.
