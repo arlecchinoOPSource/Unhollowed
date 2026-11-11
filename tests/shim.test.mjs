@@ -57,3 +57,33 @@ test('does nothing without a module name or without a Tauri parent', () => {
   assert.equal(frame({ search: '' }).context.__TAURI_INTERNALS__, undefined);
   assert.equal(frame({ parentInternals: false }).context.__TAURI_INTERNALS__, undefined);
 });
+
+/** Runs the shim in a fake iframe that has an HTMLElement, with a host that answers `mayFocus`. */
+function focusFrame(hostAnswer) {
+  const focused = [];
+  class HTMLElement { focus(...args) { focused.push(args); return 'focused'; } }
+  const parent = { isTauri: true, __TAURI_INTERNALS__: Object.freeze({ invoke() {}, transformCallback: () => 1 }), __TAURI_EVENT_PLUGIN_INTERNALS__: {}, __unhlwHost: hostAnswer };
+  const context = vm.createContext({ parent, location: { search: '?mod=ember' }, URLSearchParams, Object, HTMLElement });
+  context.window = context;
+  vm.runInContext(shim, context);
+  return { element: new context.HTMLElement(), focused };
+}
+
+test('a module in the background cannot take focus (docs/LIFECYCLE-U11.md)', () => {
+  const asked = [];
+  const { element, focused } = focusFrame({ mayFocus: name => { asked.push(name); return false; } });
+  assert.equal(element.focus(), undefined);
+  assert.equal(focused.length, 0);
+  assert.deepEqual(asked, ['ember']);
+});
+
+test('the module in front keeps focus() and its arguments', () => {
+  const { element, focused } = focusFrame({ mayFocus: () => true });
+  assert.equal(element.focus({ preventScroll: true }), 'focused');
+  assert.deepEqual(focused, [[{ preventScroll: true }]]);
+});
+
+test('with no host answer, focus is not restricted', () => {
+  assert.equal(focusFrame(undefined).element.focus(), 'focused');
+  assert.equal(focusFrame({ mayFocus() { throw new Error('host gone'); } }).element.focus(), 'focused');
+});

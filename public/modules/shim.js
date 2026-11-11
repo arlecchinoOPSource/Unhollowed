@@ -28,6 +28,17 @@
   for (const key of Object.keys(parent)) {
     if (key.startsWith('__TAURI') && key !== '__TAURI_INTERNALS__') window[key] = parent[key];
   }
+  // Only the module in front may take keyboard focus (docs/LIFECYCLE-U11.md). A page has one focused element, so a
+  // module that focuses itself in the background (an autofocus at load, a timer) would take the keyboard from the
+  // module in use. The host answers per module; with no host answer the module is not restricted.
+  if (typeof HTMLElement !== 'undefined') {
+    const focus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (...args) {
+      let allowed = true;
+      try { allowed = parent.__unhlwHost?.mayFocus(module) !== false; } catch { /* host unavailable: do not restrict */ }
+      if (allowed) return focus.apply(this, args);
+    };
+  }
   window.__unhlw = {
     module,
     calls,

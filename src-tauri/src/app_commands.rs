@@ -4,6 +4,7 @@
 pub const APP_COMMANDS: &[&str] = &[
     "host_module_activated",
     "host_module_deactivated",
+    "host_power_off",
     "selftest_enabled",
     "selftest_report",
     "selftest_resize",

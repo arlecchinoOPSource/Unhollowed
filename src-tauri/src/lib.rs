@@ -21,6 +21,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             lifecycle::host_module_activated,
             lifecycle::host_module_deactivated,
+            lifecycle::host_power_off,
             selftest::selftest_enabled,
             selftest::selftest_report,
             selftest::selftest_resize,

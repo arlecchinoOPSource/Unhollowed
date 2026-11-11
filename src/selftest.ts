@@ -146,6 +146,66 @@ async function probe(name: ModuleName, frame: HTMLIFrameElement): Promise<void> 
   await invoke('selftest_report', { name: name === 'swish' ? 'slice' : name, data: report });
 }
 
+/** U-11 (docs/LIFECYCLE-U11.md): the focus rule, navigation without loss, and power-off that saves before removing. */
+async function lifecycle(): Promise<void> {
+  const report: Record<string, unknown> = {};
+  const host = window.__unhlwHost!;
+  const frameOf = (title: string) => document.querySelector<HTMLIFrameElement>(`iframe[title="${title}"]`);
+  try {
+    // 1. Navigation destroys nothing: a page variable and a running timer in a background module survive being
+    //    in the background and coming back (an unmounted frame would lose both).
+    const swishFrame = frameOf('Swish')!;
+    const sw = swishFrame.contentWindow as Win & { __marker?: string; __ticks?: number };
+    sw.__marker = 'kept'; sw.__ticks = 0;
+    const timer = sw.setInterval(() => { sw.__ticks = (sw.__ticks ?? 0) + 1; }, 100);
+    host.bringToFront('terminal');
+    await sleep(100);
+    host.bringToFront('ember');
+    await sleep(600);
+    report.same_frame_after_navigation = frameOf('Swish') === swishFrame && swishFrame.isConnected;
+    report.page_state_kept_in_background = sw.__marker === 'kept';
+    report.timer_kept_running_in_background = (sw.__ticks ?? 0) >= 4;
+    sw.clearInterval(timer);
+
+    // 2. Focus: with Ember in front, Terminal may not take the keyboard; once Terminal is in front, it may.
+    const tFrame = frameOf('Terminal')!;
+    const td = tFrame.contentDocument!;
+    const field = td.querySelector<HTMLInputElement>('input[aria-label="Entry title"]')!;
+    (td.activeElement as HTMLElement | null)?.blur();
+    field.focus();
+    report.background_focus_blocked = td.activeElement !== field;
+    host.bringToFront('terminal');
+    await sleep(150);
+    (td.activeElement as HTMLElement | null)?.blur();
+    field.focus();
+    report.front_focus_allowed = td.activeElement === field;
+    report.front_is_terminal = host.front() === 'terminal';
+
+    // 3. Power-off: Ember saves first, only then is its frame removed; the others are untouched; a later power-on
+    //    reads the habit back from the saved database.
+    const oldEmber = frameOf('Ember')!;
+    const result = await host.powerOff('ember');
+    report.ember_confirmed_save = result?.flushed === true;
+    await until('Ember frame removed', () => frameOf('Ember') === null, 5000).catch(() => undefined);
+    report.ember_frame_removed = frameOf('Ember') === null && !oldEmber.isConnected;
+    report.others_untouched = !!frameOf('Swish') && !!frameOf('Terminal')
+      && [...frameOf('Swish')!.contentDocument!.querySelectorAll('h2')].some(h => h.textContent === 'Slice synthetic project');
+    report.power_off_again_is_refused = (await host.powerOff('ember')) === null;
+    host.powerOn('ember');
+    const eFrame = await until('a new Ember frame', () => { const f = frameOf('Ember'); return f && f !== oldEmber ? f : null; });
+    report.new_frame_after_power_on = eFrame !== oldEmber;
+    const ed = await until('Ember document', () => eFrame.contentDocument?.getElementById('root')?.childElementCount ? eFrame.contentDocument : null, 20000);
+    await until('Ember startup screen to finish', () => !ed.querySelector('.startup'), 20000);
+    await until('saved habit in the reloaded Ember', () => [...ed.querySelectorAll('.habit-name')].some(h => h.textContent === 'Ember synthetic habit'), 20000);
+    report.habit_survived_power_cycle = true;
+    report.ok = true;
+  } catch (error) {
+    report.ok = false;
+    report.error = String(error);
+  }
+  await invoke('selftest_report', { name: 'lifecycle', data: report });
+}
+
 async function runAll(): Promise<void> {
   // One module at a time: a page has a single focused element, so a module that focuses itself while another
   // is being probed (Chromium and WebView2 blur the other frame's element) would change what the probe sees.
@@ -153,14 +213,18 @@ async function runAll(): Promise<void> {
     const frame = frames.get(name)!;
     // The frame being probed holds the page's focus; modules that autofocus at load have already settled.
     await until(`${name} startup screen to finish`, () => !frame.contentDocument?.querySelector('.startup'), 25000).catch(() => undefined);
+    window.__unhlwHost?.bringToFront(name);
     frame.contentWindow?.focus();
     await probe(name, frame);
   }
+  await lifecycle();
   // Resize last, with both modules mounted, and record what each frame saw.
   await invoke('selftest_resize', { width: 800, height: 600 });
   await sleep(600);
   const widths = [...document.querySelectorAll('iframe')].map(f => f.contentWindow?.innerWidth ?? null);
-  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, frame_widths_after_resize: widths } });
+  const heights = [...document.querySelectorAll('iframe')].map(f => f.getBoundingClientRect().height);
+  const stage = document.querySelector('.stage')!.getBoundingClientRect();
+  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_bottom: stage.bottom } });
   await invoke('selftest_finish');
 }
 

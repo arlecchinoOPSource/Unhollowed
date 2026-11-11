@@ -27,12 +27,15 @@ const swish = results.slice ?? {};
 const terminal = results.terminal ?? {};
 const ember = results.ember ?? {};
 const layout = results.layout ?? {};
+const life = results.lifecycle ?? {};
 const close = results.close_handshake ?? {};
 const prefixed = module => module.all_calls_prefixed === true;
 const keys = module => new Set(module.local_storage_keys ?? []);
 const sharedKeys = [...keys(swish)].filter(key => keys(terminal).has(key) || keys(ember).has(key));
+const filled = (layout.frame_heights_after_resize ?? []).length === 3 && layout.stage_bottom >= layout.host_height - 2 && layout.frame_heights_after_resize.every(h => h >= layout.stage_height * 0.95) && layout.stage_height >= layout.host_height * 0.7;
 const checks = {
   'exit code 0': code === 0,
+  'the modules fill the window (no black band below them)': filled,
   'Swish rendered in the iframe': swish.root_rendered === true && swish.startup_finished === true,
   'Terminal rendered in the iframe': terminal.root_rendered === true && terminal.startup_finished === true,
   'Ember rendered in the iframe': ember.root_rendered === true && ember.startup_finished === true,
@@ -47,6 +50,10 @@ const checks = {
   'Terminal: entry stored through the plugin': terminal.entry_stored_via_plugin === true,
   'Ember: habit created through the real UI': ember.habit_visible_in_ember_ui === true,
   'Ember: habit stored through the plugin': ember.habit_stored_via_plugin === true,
+  'U-11: switching modules keeps the frame, its page state and its running timer': life.same_frame_after_navigation === true && life.page_state_kept_in_background === true && life.timer_kept_running_in_background === true,
+  'U-11: a background module cannot take focus; the module in front can': life.background_focus_blocked === true && life.front_focus_allowed === true && life.front_is_terminal === true,
+  'U-11: power-off saved first, removed only that frame, and was refused when repeated': life.ember_confirmed_save === true && life.ember_frame_removed === true && life.others_untouched === true && life.power_off_again_is_refused === true,
+  'U-11: a power-on is a new frame, and the habit survived the power cycle': life.new_frame_after_power_on === true && life.habit_survived_power_cycle === true && life.ok === true,
   'every command was routed to its plugin (all)': prefixed(swish) && prefixed(terminal) && prefixed(ember),
   'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme && ember.frame_theme !== ember.host_theme,
   'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,
@@ -55,5 +62,5 @@ const checks = {
 };
 let failed = 0;
 for (const [name, ok] of Object.entries(checks)) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); if (!ok) failed++; }
-console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)} (host ${layout.host_width}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}, ember ${ember.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}, ember ${JSON.stringify(ember.local_storage_keys)}`);
+console.log(`Recorded, not asserted: frame widths after resizing to 800 px: ${JSON.stringify(layout.frame_widths_after_resize)}, heights ${JSON.stringify(layout.frame_heights_after_resize)} (host ${layout.host_width}x${layout.host_height}); AudioContext without a gesture: swish ${swish.audio_context_state_without_gesture}, terminal ${terminal.audio_context_state_without_gesture}, ember ${ember.audio_context_state_without_gesture}; localStorage keys: swish ${JSON.stringify(swish.local_storage_keys)}, terminal ${JSON.stringify(terminal.local_storage_keys)}, ember ${JSON.stringify(ember.local_storage_keys)}`);
 process.exit(failed ? 1 : 0);
