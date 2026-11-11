@@ -37,7 +37,7 @@ Placeholder icons were generated with the Tauri CLI and are not final artwork.
 | Resize | Passed on macOS |
 | Audio autoplay | An unprompted `AudioContext` is suspended; real cue playback after a click was not tested |
 | Shutdown / close handshake | Passed for Swish through its own event and exit command |
-| Windows | **Not run** |
+| Windows | **Passed in CI** (run 42953004601, `windows-latest`): the same 11-check self-test as on macOS after module calls were routed through build-time adapters (see Windows below) |
 | Ember and Terminal bundles | **Not run** (their module plugins do not exist) |
 
 ## Decisions applied and deviations
@@ -49,5 +49,10 @@ Placeholder icons were generated with the Tauri CLI and are not final artwork.
 
 ## Not done
 
-- Rack artwork, projector state machine, power-off (open decision O3), Terminal and Ember, Windows verification, CI, packaging checks, accessibility and performance review.
+- Rack artwork, projector state machine, power-off (open decision O3), Terminal and Ember, packaging checks, accessibility and performance review.
 - The pin in `modules.json` points at a Swish commit; update it to the commit on Swish `main` once the Swish alignment pull request is merged (U-34 pin rule).
+
+## Windows (added 2026-11-11, CI)
+
+The first Windows self-test runs failed in a way macOS had hidden: WebView2 runs Tauri's initialization script in every frame, so the Swish iframe got its own permanent Tauri internals, the run-time shim could not replace them ("Cannot redefine property"), and Swish's commands never reached the module plugin (issue [#52](https://github.com/arlecchinoOPSource/Unhollowed/issues/52)). Fix, chosen by the owner: build-time adapters (`adapter/`) that route a module's `core` and `event` calls through the host window on every platform. After it, `native self-test (windows-latest)` and `(macos-15)` both passed in CI on commit `83c4fb7`, alongside `checks` on both. Observed, not asserted: an `AudioContext` created without a gesture was `running` on Windows and `suspended` on macOS. Along the way CI also found a CRLF-sensitive test and an `npm` spawn failure on Windows, both fixed.
+

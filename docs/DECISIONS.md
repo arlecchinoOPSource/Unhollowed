@@ -38,6 +38,10 @@ Host identifier `com.arlecchino.unhlw` (approved name; irreversible after releas
 
 UNHLW owns the host contract (iframe shim, message protocol, Rust module convention); Core stays UI-only; app frontends are mounted unmodified from relative-base builds; backend extraction stays in the app repositories by separate owner-authorized issues; no Core embeddable mode and no early C-11/C-12; Core pins by SHA verified by a consumer build. Evidence and risks: [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md).
 
+## Accepted — module Tauri calls routed by build-time adapters (product owner, 2026-11-11)
+
+Result of the U-31 Windows re-run (issue [#52](https://github.com/arlecchinoOPSource/Unhollowed/issues/52)): the run-time shim cannot replace the iframe's Tauri internals on WebView2. The owner chose option 1: when a module is built, its `@tauri-apps/api` `core` and `event` imports are aliased to host adapters (`adapter/`) that prefix commands to `plugin:<module>|…` and register events through the host window. The iframe embedding model of U-31 stands. Native child webviews remain the fallback. Evidence: [SLICE-U03.md](SLICE-U03.md).
+
 ## Proposals and unresolved decisions
 
 Specification and architecture baseline: [SPECIFICATION.md](SPECIFICATION.md), [ARCHITECTURE.md](ARCHITECTURE.md). Still open: meaning of projector power for unsaved work and timers; cross-process change notification and conflict policy (U-15); performance budgets; Windows behaviour; branch protection; Ember release v2.0.2 provenance. Record alternatives, rationale, consequences, date and owner when each is decided.

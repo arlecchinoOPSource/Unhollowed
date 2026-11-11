@@ -10,7 +10,7 @@ Tauri host (com.arlecchino.unhlw)
 │    plugin:terminal | plugin:ember | plugin:swish   (prefixed commands + permissions)
 └─ one webview (React): rack, projectors, lifecycle controls
      ├─ iframe: Terminal bundle ─┐
-     ├─ iframe: Ember bundle    ─┼─ IPC shim → plugin:<module>|<command>
+     ├─ iframe: Ember bundle    ─┼─ host adapters → plugin:<module>|<command>
      └─ iframe: Swish bundle    ─┘
 data (unchanged, owned by each module):
   <data_dir>/com.arlecchino.terminal/journal.sqlite3
@@ -24,7 +24,7 @@ data (unchanged, owned by each module):
 2. **Module plugins (Rust, built in each app's repository).** Each app exposes a plugin builder that takes an injected data directory and registers its existing commands under the module's prefix. Business logic and storage stay with the app; UNHLW does not copy backend code. Extraction is U-06, U-08 and U-10, each needing owner authorization in the owning repository.
 3. **Host webview (React).** Draws the rack, projector units and controls with Blender-rendered 2.5D layers and live React content; hosts the iframes; runs the projector state machine (off, booting, active, shutting-down, error).
 4. **Module iframes.** Each app's own web bundle, built by UNHLW from the pinned source with a relative base (`--base=./`) and loaded unmodified in a same-origin iframe. The document boundary isolates DOM, CSS, theme, global listeners and audio contexts.
-5. **IPC shim.** Installed in each iframe before the app's scripts. It sets `window.isTauri`, replaces `__TAURI_INTERNALS__.invoke` (via `Object.defineProperty`; Tauri defines it read-only) so unprefixed commands become `plugin:<module>|<command>`, and passes events and callbacks through to the host. Proven for Terminal's bundle in [HOST-CONTRACT-U35.md](HOST-CONTRACT-U35.md); the shim relies on Tauri internals, not a public API.
+5. **Tauri API adapters (build time) and a small shim (run time).** When a module's bundle is built, its `@tauri-apps/api` `core` and `event` imports are redirected to adapters in `adapter/` ([issue #52](https://github.com/arlecchinoOPSource/Unhollowed/issues/52)). The adapters send the module's commands to `plugin:<module>|<command>` and register event listeners through the **host window's** internals, so the same bundle behaves identically on macOS and Windows; the build fails if the real calls survive. This replaces the earlier run-time replacement of the iframe's internals, which cannot work on Windows: WebView2 (wry has no main-frame-only option there) gives every frame its own permanent `__TAURI_INTERNALS__`. A tiny shim (`public/modules/shim.js`) still sets `window.isTauri` and, where the frame has no internals (macOS), provides them, because modules also test for their presence. Modules that use further Tauri APIs (Ember's window API, Terminal's dialog plugin) need the adapter surface extended; an unsupported import fails that module's build.
 
 ## Lifecycle (design; close handshake **Untested**)
 

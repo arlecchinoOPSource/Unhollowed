@@ -15,11 +15,28 @@
       return host.invoke(target, args, options);
     },
   });
-  window.__TAURI_INTERNALS__ = internals;
+  // WebView2 (Windows) runs Tauri's initialization script in every frame, so the iframe may already have its own
+  // internals; WKWebView does not. Try a plain assignment, then a redefinition, and record what happened.
+  const before = Object.getOwnPropertyDescriptor(window, '__TAURI_INTERNALS__');
+  let problem = null;
+  try { window.__TAURI_INTERNALS__ = internals; } catch (error) { problem = String(error); }
+  if (window.__TAURI_INTERNALS__ !== internals) {
+    try { Object.defineProperty(window, '__TAURI_INTERNALS__', { value: internals, configurable: true, writable: true }); } catch (error) { problem = String(error); }
+  }
   // isTauri() in @tauri-apps/api reads its own global.
   window.isTauri = parent.isTauri === true;
   for (const key of Object.keys(parent)) {
     if (key.startsWith('__TAURI') && key !== '__TAURI_INTERNALS__') window[key] = parent[key];
   }
-  window.__unhlw = { module, calls };
+  window.__unhlw = {
+    module,
+    calls,
+    // false on Windows (WebView2 gives every frame its own permanent internals); the build-time adapters route the
+    // module's calls through the host window instead (adapter/), so this only matters for code that bypasses them.
+    effective: window.__TAURI_INTERNALS__ === internals,
+    hadOwnInternals: !!before,
+    ownWritable: before ? before.writable ?? null : null,
+    ownConfigurable: before ? before.configurable : null,
+    problem,
+  };
 })();

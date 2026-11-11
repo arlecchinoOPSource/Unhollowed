@@ -41,6 +41,12 @@ test('sets isTauri, inherits other internals, and copies other __TAURI globals',
   assert.ok(context.__TAURI_EVENT_PLUGIN_INTERNALS__);
 });
 
+test('reports whether it took effect, and why not when the frame keeps its own internals', () => {
+  const { context } = frame();
+  assert.equal(context.__unhlw.effective, true);
+  assert.equal(context.__unhlw.hadOwnInternals, false);
+});
+
 test('records the routed calls for the self-test', () => {
   const { context } = frame();
   context.__TAURI_INTERNALS__.invoke('create_project', {});

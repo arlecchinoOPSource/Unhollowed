@@ -7,7 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
  */
 let started = false;
 
-type Win = Window & typeof globalThis & { __unhlw?: { module: string; calls: string[] }; AudioContext: typeof AudioContext };
+type Win = Window & typeof globalThis & { __unhlw?: { module: string; calls: string[]; effective: boolean; hadOwnInternals: boolean; ownWritable: boolean | null; ownConfigurable: boolean | null; problem: string | null }; AudioContext: typeof AudioContext };
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function until<T>(what: string, probe: () => T | null | undefined | false, ms = 15000): Promise<T> {
@@ -28,6 +28,11 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     const w = frame.contentWindow as Win;
     const d = frame.contentDocument!;
     report.shim_installed = !!w.__unhlw;
+    // A missing module bundle makes the dev server answer with the host's own page, which would look like a
+    // rendered module. Stop at once with a clear reason instead.
+    report.shim_effective = w.__unhlw?.effective ?? null;
+    report.shim_details = w.__unhlw ? { hadOwnInternals: w.__unhlw.hadOwnInternals, ownWritable: w.__unhlw.ownWritable, ownConfigurable: w.__unhlw.ownConfigurable, problem: w.__unhlw.problem } : null;
+    if (!w.__unhlw) throw new Error('the shim is not installed in the module frame: the Swish bundle is missing or was not built for the host');
     report.isTauri_in_frame = (w as unknown as { isTauri?: boolean }).isTauri === true;
     report.root_rendered = !!(await until('Swish root content', () => d.getElementById('root')?.childElementCount));
     // Swish shows its startup screen for at least 2.2 s; wait for it to leave.
@@ -68,11 +73,19 @@ export async function runSelfTest(frame: HTMLIFrameElement | null): Promise<void
     } catch (error) { report.audio_context_error = String(error); }
 
     report.ipc_calls_through_shim = [...new Set((w.__unhlw?.calls ?? []).map(call => call.split(' -> ')[0]))];
-    report.all_calls_prefixed = (w.__unhlw?.calls ?? []).every(call => call.split(' -> ')[1].startsWith('plugin:'));
+    const calls = w.__unhlw?.calls ?? [];
+    report.all_calls_prefixed = calls.length > 0 && calls.every(call => call.split(' -> ')[1].startsWith('plugin:'));
     report.ok = true;
   } catch (error) {
     report.ok = false;
     report.error = String(error);
+    // Say what the module looked like when it failed, so a CI log is enough to diagnose it.
+    try {
+      const w = frame.contentWindow as Win;
+      report.failure_page_text = (frame.contentDocument?.body.innerText ?? '').replace(/\s+/g, ' ').slice(0, 400);
+      report.failure_ipc_calls = w.__unhlw?.calls ?? [];
+      report.failure_load_workspace = await invoke('plugin:swish|load_workspace').then(v => `ok: ${JSON.stringify(v).slice(0, 120)}`, e => `error: ${JSON.stringify(e).slice(0, 300)}`);
+    } catch (inner) { report.failure_diagnostics_error = String(inner); }
   }
   await invoke('selftest_report', { name: 'slice', data: report });
   await invoke('selftest_finish');

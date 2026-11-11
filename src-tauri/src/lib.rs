@@ -60,7 +60,8 @@ mod tests {
     /// capability (Ember 2.0.0 shipped commands without permissions).
     #[test]
     fn app_commands_are_declared_handled_and_granted() {
-        let source = include_str!("lib.rs");
+        // Windows checkouts use CRLF line endings; compare on LF.
+        let source = include_str!("lib.rs").replace("\r\n", "\n");
         let capability: serde_json::Value =
             serde_json::from_str(include_str!("../capabilities/main.json")).unwrap();
         let granted: Vec<&str> = capability["permissions"]
