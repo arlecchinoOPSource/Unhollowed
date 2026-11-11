@@ -13,7 +13,7 @@
   },
   "terminal": {
     "repo": "https://github.com/arlecchinoOPSource/Arlecchino-s-Terminal-Journal.git",
-    "sha": "d0f0e1eb14de0bdc303d05319c7682c1ded67eac",
+    "sha": "0c7b9e9cd4b693d72d1939077c7ddc98d79f6f8d",
     "version": "2.0.1",
     "identifier": "com.arlecchino.terminal",
     "manifests": [
