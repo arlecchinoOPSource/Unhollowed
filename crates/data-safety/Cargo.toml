@@ -1,0 +1,11 @@
+[package]
+name = "unhlw-data-safety"
+description = "Host-level data safety for embedded modules: verified backup before migration, verified restore"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+rusqlite = { workspace = true }
+serde = { workspace = true }

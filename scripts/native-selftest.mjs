@@ -2,7 +2,8 @@
 // embedded Swish UI, and checks the JSON it reports. Opens a window for about 20 seconds.
 // Needs `npm run build:modules` and a debug build first (see README).
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,8 +20,37 @@ const timer = setTimeout(() => { console.error('Timed out after 90 s'); child.ki
 const code = await new Promise(done => child.on('exit', done));
 clearTimeout(timer);
 
+// Phase 2 (U-14, docs/DATA-SAFETY-U14.md): start the host again on the same synthetic data, but tell it (debug builds only)
+// that every module now writes schema 2. Each existing file then looks one version old, so the host must make a verified
+// copy of it before the module opens it. Nothing here needs a window to be driven; the backups are watched for and the
+// host is stopped.
+const modules = { terminal: ['com.arlecchino.terminal', 'journal.sqlite3', 'entries'], ember: ['com.arlecchino.ember', 'ember.sqlite3', 'habits'], swish: ['com.arlecchino.swish', 'swish.sqlite3', 'projects'] };
+const backupsOf = name => { const folder = join(dataRoot, modules[name][0], 'backups'); return existsSync(folder) ? readdirSync(folder).filter(f => f.startsWith('before-migrate-v1-to-v2-') && f.endsWith('.sqlite3')).map(f => join(folder, f)) : []; };
+const safety = {};
+if (code === 0) {
+  const second = spawn(bin, [], { env: { ...process.env, UNHLW_DATA_ROOT: dataRoot, UNHLW_TEST_SCHEMA_VERSION: '2' }, stdio: 'ignore' });
+  const until = Date.now() + 60000;
+  while (Date.now() < until && Object.keys(modules).some(name => backupsOf(name).length === 0)) await new Promise(r => setTimeout(r, 250));
+  second.kill();
+  await new Promise(done => (second.exitCode !== null || second.signalCode ? done() : second.on('exit', done)));
+  for (const [name, [folder, file, table]] of Object.entries(modules)) {
+    const copies = backupsOf(name);
+    const read = (path, sql) => { const db = new DatabaseSync(path, { readOnly: true }); try { return db.prepare(sql).get(); } finally { db.close(); } };
+    safety[name] = { copies: copies.length };
+    if (copies.length === 1) {
+      const original = join(dataRoot, folder, file);
+      safety[name].copy_integrity = read(copies[0], 'PRAGMA integrity_check').integrity_check;
+      safety[name].copy_version = read(copies[0], 'PRAGMA user_version').user_version;
+      safety[name].copy_rows = read(copies[0], `SELECT count(*) AS n FROM ${table}`).n;
+      safety[name].original_version = read(original, 'PRAGMA user_version').user_version;
+      safety[name].original_rows = read(original, `SELECT count(*) AS n FROM ${table}`).n;
+    }
+  }
+}
+
 const results = existsSync(outFile) ? JSON.parse(readFileSync(outFile, 'utf8')) : {};
 rmSync(dir, { recursive: true, force: true });
+results.data_safety = safety;
 console.log(JSON.stringify(results, null, 2));
 
 const swish = results.slice ?? {};
@@ -58,6 +88,7 @@ const checks = {
   'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme && ember.frame_theme !== ember.host_theme,
   'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,
   'close handshake: all modules flushed before exit': close.timed_out === false && ['swish', 'terminal', 'ember'].every(m => (close.active_modules ?? []).includes(m)),
+  'U-14: an older file gets a verified copy before the module opens it (all three), and the originals are untouched': Object.keys(modules).every(name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; }),
   'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,
 };
 let failed = 0;

@@ -28,6 +28,9 @@ export function App() {
   }, []);
   const [leaving, setLeaving] = useState<ModuleName[]>([]);
   const [unsaved, setUnsaved] = useState<Record<string, string>>({});
+  // Told once at start: e.g. a verified copy was made before a module's data was upgraded (docs/DATA-SAFETY-U14.md).
+  const [notices, setNotices] = useState<{ module: string; message: string }[]>([]);
+  useEffect(() => { void invoke<{ module: string; message: string }[]>('host_data_notices').then(setNotices).catch(() => undefined); }, []);
 
   const powerOn = useCallback((name: ModuleName) => update(r => rackModel.powerOn(r, name)), [update]);
   const bringToFront = useCallback((name: ModuleName) => update(r => rackModel.bringToFront(r, name)), [update]);
@@ -84,6 +87,7 @@ export function App() {
       </nav>
       <p className="note">Foundation slice. Power a module off to save and close it; close the window to quit.</p>
     </header>
+    {notices.map((notice, index) => <div key={index} role="status" className="notice"><strong>{notice.module}</strong> {notice.message}<button type="button" className="power" onClick={() => setNotices(current => current.filter((_, i) => i !== index))}>Dismiss</button></div>)}
     {Object.entries(unsaved).map(([name, reason]) => <div key={name} role="alert" className="unsaved">
       <strong>{MODULES.find(m => m.name === name)?.title} did not confirm that it saved.</strong> {reason}
       <button type="button" className="power" onClick={() => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name as ModuleName)); }}>Keep it open</button>

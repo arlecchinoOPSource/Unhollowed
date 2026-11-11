@@ -12,6 +12,7 @@ html, body, #root { height: 100%; margin: 0; }
 .note { margin: 0; color: #8b979c; font-size: .85rem; }
 .stage { min-height: 0; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 1px; background: #2a3033; }
 .slot-controls { display: inline-flex; gap: 6px; }
+.notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 16px; background: #14262e; border-bottom: 1px solid #4f8fa6; }
 .unsaved { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 16px; background: #3a2a14; border-bottom: 1px solid #c58b2a; }
 .module-slot { position: relative; min-width: 0; min-height: 0; height: 100%; box-shadow: inset 0 0 0 2px transparent; }
 .module-slot[data-front='true'] { box-shadow: inset 0 0 0 2px #6fcf97; }

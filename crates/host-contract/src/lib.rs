@@ -21,6 +21,11 @@ pub struct ModuleInfo {
     pub identifier: &'static str,
     /// The event the app already listens for to start its own close sequence.
     pub close_event: &'static str,
+    /// The database file inside the module's folder.
+    pub database_file: &'static str,
+    /// The schema version (`PRAGMA user_version`) the pinned module writes. The host backs a file up before opening it
+    /// when it is older than this (docs/DATA-SAFETY-U14.md). A test in each plugin keeps it equal to the real module's.
+    pub schema_version: i64,
 }
 
 /// Payload of [`FLUSH_EVENT`].

@@ -18,6 +18,7 @@ tauri = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 unhlw-host-contract = { path = "../crates/host-contract" }
+unhlw-data-safety = { path = "../crates/data-safety" }
 tauri-plugin-swish = { path = "../crates/module-swish" }
 tauri-plugin-terminal = { path = "../crates/module-terminal" }
 tauri-plugin-ember = { path = "../crates/module-ember" }
