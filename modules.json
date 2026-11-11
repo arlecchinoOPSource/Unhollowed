@@ -25,7 +25,7 @@
   },
   "ember": {
     "repo": "https://github.com/arlecchinoOPSource/Ember-by-Arlecchino.git",
-    "sha": "610fa7f1d92bedf634402ae112102bf9ed6b563a",
+    "sha": "2351a239775a7e33543cb76d16846c228a583eaf",
     "version": "2.0.2",
     "identifier": "com.arlecchino.ember",
     "appDir": "desktop",
