@@ -1,6 +1,6 @@
 # Agent operating guide
 
-For local macOS validation and reporting, follow [Local macOS testing](docs/LOCAL_MACOS_TESTING.md).
+macOS is tested locally, not on GitHub: follow [Local macOS testing](docs/LOCAL_MACOS_TESTING.md) and report its commands, results, macOS version and architecture in every PR. A queued or cancelled runner is never a pass.
 
 UNHLW is a local-first integrated desktop host, not a launcher. Preserve the standalone applications, user data and the product owner's control of direction, merges and releases. Read the assigned issue, README, relevant docs and any more specific instructions before changing code. Treat current capabilities and proposals separately.
 

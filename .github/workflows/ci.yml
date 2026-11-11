@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 # Third-party actions are pinned to full commit SHAs (docs/TESTING.md); the comment names the tag.
-# macos-15 (arm64) is named explicitly: macos-latest is now macOS 26, whose pool was over capacity and cancelled
-# every job unscheduled (2026-11-10 and -11); macos-14 is deprecated and rejected ("configuration not supported").
+# macOS is not tested on GitHub: hosted macOS runners were cancelled before starting or queued for up to 15 minutes
+# (2026-11-10 and -11). The standard macOS procedure is docs/LOCAL_MACOS_TESTING.md, run on a Mac and reported in the PR.
 # actions/checkout            v4  11d5960a326750d5838078e36cf38b85af677262
 # actions/setup-node          v4  49933ea5288caeca8642d1e84afbd3f7d6820020
 # dtolnay/rust-toolchain      stable  b725eda525362e7cf34af9a7243cac1e3f01a7ec
@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, windows-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -59,7 +59,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, windows-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     env:
       CORE_KEY_SET: ${{ secrets.CORE_READ_KEY != '' }}
