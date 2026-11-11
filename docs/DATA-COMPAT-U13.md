@@ -26,7 +26,7 @@ Compatibility is the file's `PRAGMA user_version`, owned by the module.
 | Situation | What happens | Who protects the data |
 | --- | --- | --- |
 | Host and standalone write the same schema | Both work | — |
-| **Host's module is newer** than the file | Opening migrates the file. The host first makes a verified copy, tells the person, and refuses to proceed if it cannot copy. A standalone app older than the new schema will then **refuse the file** (the one-way door) | The host (U-14) |
+| **Host's module is newer** than the file | Opening migrates the file. The host asks the person first; only after they confirm does it make a verified copy, and it refuses to proceed if it cannot copy. A standalone app older than the new schema will then **refuse the file** (the one-way door) | The host (U-14) |
 | **Standalone is newer** than the host's module | The standalone migrates. The host's older module refuses the file with the module's own message and changes nothing (tested upstream for all three) | The module |
 | File from another app or damaged | The module refuses (Swish checks `application_id`; Terminal and Ember find missing tables) | The module |
 

@@ -55,15 +55,9 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
             app_lib::commands::entry_export
         ])
         .setup(move |app, _api| {
-            let database = match unhlw_data_safety::prepare(
-                INFO.name,
-                &data_dir.join(INFO.database_file),
-                &data_dir.join("backups"),
-                unhlw_data_safety::effective_version(INFO.schema_version),
-            ) {
-                unhlw_data_safety::Prepared::Refused(reason) => Err(reason),
-                _ => commands::open_in(&data_dir),
-            };
+            // The host registers this plugin only once the file needs no confirmation or the person confirmed an upgrade
+            // (docs/DATA-SAFETY-U14.md), so opening here is always allowed.
+            let database = commands::open_in(&data_dir);
             app.manage(Database(Mutex::new(database)));
             app.manage(PendingRestore::default());
             app.manage(DataDir(Ok(data_dir.clone())));

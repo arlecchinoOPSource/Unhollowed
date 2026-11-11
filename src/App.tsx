@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { ModuleFrame } from './ModuleFrame';
 import { MODULES, type ModuleName } from './modules';
 import * as rackModel from './lifecycle';
+import { runMigrationScenario } from './selftest';
 
 const NAMES = MODULES.map(module => module.name);
 type PowerOff = { flushed: boolean; waitedMs: number; lingerMs: number };
@@ -30,10 +31,33 @@ export function App() {
   const [unsaved, setUnsaved] = useState<Record<string, string>>({});
   // Told once at start: e.g. a verified copy was made before a module's data was upgraded (docs/DATA-SAFETY-U14.md).
   const [notices, setNotices] = useState<{ module: string; message: string }[]>([]);
-  useEffect(() => { void invoke<{ module: string; message: string }[]>('host_data_notices').then(setNotices).catch(() => undefined); }, []);
+  const refreshNotices = useCallback(() => { void invoke<{ module: string; message: string }[]>('host_data_notices').then(setNotices).catch(() => undefined); }, []);
+  useEffect(refreshNotices, [refreshNotices]);
+  // A module whose data is older than it writes is not opened until the person confirms (docs/DATA-SAFETY-U14.md).
+  const [waiting, setWaiting] = useState<Record<string, { from: number; to: number }>>({});
+  const [asking, setAsking] = useState<ModuleName | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState('');
+  useEffect(() => {
+    void Promise.all(NAMES.map(name => invoke<{ state: string; from?: number; to?: number }>('host_module_status', { module: name }).then(status => [name, status] as const)))
+      .then(all => setWaiting(Object.fromEntries(all.filter(([, status]) => status.state === 'needsConfirmation').map(([name, status]) => [name, { from: status.from!, to: status.to! }]))))
+      .catch(() => undefined);
+  }, []);
+  async function confirmUpgrade(name: ModuleName) {
+    setUpgrading(true); setUpgradeError('');
+    try {
+      await invoke('host_confirm_migration', { module: name });
+      setWaiting(({ [name]: _gone, ...rest }) => rest);
+      setAsking(null);
+      refreshNotices();
+      powerOn(name);
+    } catch (error) { setUpgradeError(String(error)); }
+    setUpgrading(false);
+  }
 
   const powerOn = useCallback((name: ModuleName) => update(r => rackModel.powerOn(r, name)), [update]);
   const bringToFront = useCallback((name: ModuleName) => update(r => rackModel.bringToFront(r, name)), [update]);
+  const wantOn = useCallback((name: ModuleName) => { if (waiting[name]) { setUpgradeError(''); setAsking(name); } else powerOn(name); }, [waiting, powerOn]);
 
   /** Asks the module to save; removes its frame only once it confirms. Returns null when it was not on. */
   const powerOff = useCallback(async (name: ModuleName): Promise<PowerOff | null> => {
@@ -64,7 +88,7 @@ export function App() {
     return () => { delete window.__unhlwHost; };
   }, [powerOn, bringToFront, powerOff]);
   // Debug-only native self-test: press the power switches ourselves (inert in release builds).
-  useEffect(() => { void invoke<boolean>('selftest_enabled').then(enabled => { if (enabled) MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
+  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; if ((await invoke<string | null>('selftest_scenario')) === 'migration') void runMigrationScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
 
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
@@ -77,7 +101,7 @@ export function App() {
           const phase = rack.phase[name];
           return <span key={name} className="slot-controls">
             {phase === 'off'
-              ? <button type="button" className="power" aria-pressed="false" onClick={() => powerOn(name)}>{title}: power on</button>
+              ? <button type="button" className="power" aria-pressed="false" onClick={() => wantOn(name)}>{title}: power on</button>
               : <>
                 <button type="button" className="power" aria-pressed="true" disabled={phase === 'closing'} onClick={() => void powerOff(name)}>{title}: {phase === 'closing' ? 'saving…' : 'power off'}</button>
                 {phase === 'on' && rack.front !== name && <button type="button" className="power" onClick={() => bringToFront(name)}>Bring {title} to front</button>}
@@ -87,6 +111,13 @@ export function App() {
       </nav>
       <p className="note">Foundation slice. Power a module off to save and close it; close the window to quit.</p>
     </header>
+    {asking && waiting[asking] && <div role="alertdialog" aria-modal="true" aria-labelledby="upgrade-title" aria-describedby="upgrade-body" className="upgrade" onKeyDown={event => { if (event.key === 'Escape' && !upgrading) setAsking(null); }}>
+      <h2 id="upgrade-title">Upgrade {MODULES.find(m => m.name === asking)?.title}'s data?</h2>
+      <p id="upgrade-body">{MODULES.find(m => m.name === asking)?.title}'s data is on schema {waiting[asking].from}; this version of Unhollowed uses schema {waiting[asking].to}. Opening it will upgrade the file. A verified copy is made first, and if that copy cannot be made nothing is changed. Older standalone releases of {MODULES.find(m => m.name === asking)?.title} will refuse the upgraded file; restoring the copy is the only way back.</p>
+      {upgradeError && <p role="alert">{upgradeError}</p>}
+      <button type="button" className="power" autoFocus disabled={upgrading} onClick={() => setAsking(null)}>Not now</button>
+      <button type="button" className="power" disabled={upgrading} onClick={() => void confirmUpgrade(asking)}>{upgrading ? 'Backing up…' : 'Back up and upgrade'}</button>
+    </div>}
     {notices.map((notice, index) => <div key={index} role="status" className="notice"><strong>{notice.module}</strong> {notice.message}<button type="button" className="power" onClick={() => setNotices(current => current.filter((_, i) => i !== index))}>Dismiss</button></div>)}
     {Object.entries(unsaved).map(([name, reason]) => <div key={name} role="alert" className="unsaved">
       <strong>{MODULES.find(m => m.name === name)?.title} did not confirm that it saved.</strong> {reason}

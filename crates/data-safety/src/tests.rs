@@ -117,90 +117,6 @@ fn two_backups_in_the_same_millisecond_never_overwrite_each_other() {
 }
 
 #[test]
-fn nothing_to_migrate_means_nothing_is_written() {
-    let dir = scratch("noop");
-    let db = dir.join("m.sqlite3");
-    let _w = make_db(&db, 1, &["x"]);
-    assert_eq!(
-        prepare("noop", &db, &dir.join("backups"), 1),
-        Prepared::Proceed
-    );
-    assert_eq!(
-        prepare("noop", &dir.join("absent.sqlite3"), &dir.join("backups"), 1),
-        Prepared::Proceed
-    );
-    assert!(
-        !dir.join("backups").exists(),
-        "no backups folder was created"
-    );
-}
-
-#[test]
-fn a_newer_file_is_not_touched_and_not_backed_up() {
-    let dir = scratch("newer");
-    let db = dir.join("m.sqlite3");
-    let _w = make_db(&db, 5, &["x"]);
-    let before = bytes(&db);
-    assert_eq!(
-        prepare("newer", &db, &dir.join("backups"), 1),
-        Prepared::Proceed,
-        "the module refuses it itself"
-    );
-    assert_eq!(bytes(&db), before);
-    assert!(!dir.join("backups").exists());
-}
-
-#[test]
-fn an_older_file_is_backed_up_and_verified_before_anyone_may_migrate_it() {
-    let dir = scratch("migrate");
-    let db = dir.join("m.sqlite3");
-    let _w = make_db(&db, 1, &["keep me"]);
-    let Prepared::BackedUp(copy) = prepare("migrates", &db, &dir.join("backups"), 2) else {
-        panic!("expected a backup")
-    };
-    assert_eq!(notes(&copy.path), ["keep me"]);
-    assert_eq!(
-        copy.user_version, 1,
-        "the copy is the pre-migration version"
-    );
-    assert!(
-        copy.path
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .starts_with("before-migrate-v1-to-v2-")
-    );
-    let notice = notices()
-        .into_iter()
-        .find(|n| n.module == "migrates")
-        .expect("the person is told");
-    assert!(notice.message.contains("refuse"), "{}", notice.message);
-    assert!(notice.message.contains(copy.path.to_str().unwrap()));
-}
-
-#[test]
-fn if_the_safety_copy_cannot_be_made_the_file_is_refused_and_unchanged() {
-    let dir = scratch("refuse");
-    let db = dir.join("m.sqlite3");
-    let writer = make_db(&db, 1, &["precious"]);
-    drop(writer);
-    let before = bytes(&db);
-    // The backups location is a regular file, so a folder cannot be created there.
-    std::fs::write(dir.join("backups"), b"in the way").unwrap();
-    let Prepared::Refused(reason) = prepare("refused", &db, &dir.join("backups"), 2) else {
-        panic!("expected a refusal")
-    };
-    assert!(reason.contains("Nothing was changed"), "{reason}");
-    assert_eq!(
-        bytes(&db),
-        before,
-        "the original is byte-for-byte as it was"
-    );
-    assert_eq!(user_version(&db).unwrap(), 1);
-}
-
-#[test]
 fn restore_puts_back_the_backup_after_saving_what_it_replaced() {
     let dir = scratch("restore");
     let db = dir.join("m.sqlite3");
@@ -312,4 +228,52 @@ fn a_backup_appears_under_its_final_name_only_when_complete_and_failures_leave_n
         0,
         "a failed backup leaves no file, partial or final"
     );
+}
+
+#[test]
+fn an_upgrade_backup_is_verified_named_for_the_versions_and_announced() {
+    let dir = scratch("upgrade");
+    let db = dir.join("m.sqlite3");
+    let _w = make_db(&db, 1, &["keep me"]);
+    let copy = backup_for_upgrade("upgrades", &db, &dir.join("backups"), 1, 2).unwrap();
+    assert_eq!(notes(&copy.path), ["keep me"]);
+    assert_eq!(
+        copy.user_version, 1,
+        "the copy is the pre-migration version"
+    );
+    assert!(
+        copy.path
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .starts_with("before-migrate-v1-to-v2-")
+    );
+    let notice = notices()
+        .into_iter()
+        .find(|n| n.module == "upgrades")
+        .expect("the person is told");
+    assert!(notice.message.contains("refuse"), "{}", notice.message);
+    assert!(notice.message.contains(copy.path.to_str().unwrap()));
+}
+
+#[test]
+fn if_the_upgrade_backup_cannot_be_made_there_is_an_error_no_notice_and_the_file_is_unchanged() {
+    let dir = scratch("upgrade-fails");
+    let db = dir.join("m.sqlite3");
+    drop(make_db(&db, 1, &["precious"]));
+    let before = bytes(&db);
+    // The backups location is a regular file, so a folder cannot be created there.
+    std::fs::write(dir.join("backups"), b"in the way").unwrap();
+    assert!(backup_for_upgrade("fails", &db, &dir.join("backups"), 1, 2).is_err());
+    assert!(
+        notices().iter().all(|n| n.module != "fails"),
+        "no notice for an upgrade that did not happen"
+    );
+    assert_eq!(
+        bytes(&db),
+        before,
+        "the original is byte-for-byte as it was"
+    );
+    assert_eq!(user_version(&db).unwrap(), 1);
 }

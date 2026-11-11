@@ -36,6 +36,13 @@ pub fn selftest_enabled() -> bool {
     out_path().is_some()
 }
 
+/// Which scripted scenario the page should run (debug builds with the self-test on): `UNHLW_SELFTEST_SCENARIO`.
+#[tauri::command]
+pub fn selftest_scenario() -> Option<String> {
+    out_path()?;
+    std::env::var("UNHLW_SELFTEST_SCENARIO").ok()
+}
+
 #[tauri::command]
 pub fn selftest_report(name: String, data: Value) {
     if out_path().is_none() {

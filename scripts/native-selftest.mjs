@@ -2,7 +2,8 @@
 // embedded Swish UI, and checks the JSON it reports. Opens a window for about 20 seconds.
 // Needs `npm run build:modules` and a debug build first (see README).
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -21,21 +22,29 @@ const code = await new Promise(done => child.on('exit', done));
 clearTimeout(timer);
 
 // Phase 2 (U-14, docs/DATA-SAFETY-U14.md): start the host again on the same synthetic data, but tell it (debug builds only)
-// that every module now writes schema 2. Each existing file then looks one version old, so the host must make a verified
-// copy of it before the module opens it. Nothing here needs a window to be driven; the backups are watched for and the
-// host is stopped.
+// that every module now writes schema 2, so each existing file looks one version old. No module may be opened until the person
+// confirms. The page then runs a scripted scenario through the real confirmation dialog: Terminal is declined (it must stay
+// closed and its file untouched), Ember is confirmed in the dialog, Swish through the command; each confirmed module gets one
+// verified copy first. This phase needs no window driving from here: the host closes itself when the scenario ends.
 const modules = { terminal: ['com.arlecchino.terminal', 'journal.sqlite3', 'entries'], ember: ['com.arlecchino.ember', 'ember.sqlite3', 'habits'], swish: ['com.arlecchino.swish', 'swish.sqlite3', 'projects'] };
-const backupsOf = name => { const folder = join(dataRoot, modules[name][0], 'backups'); return existsSync(folder) ? readdirSync(folder).filter(f => f.startsWith('before-migrate-v1-to-v2-') && f.endsWith('.sqlite3')).map(f => join(folder, f)) : []; };
+const backupsOf = name => { const folder = join(dataRoot, modules[name][0], 'backups'); return existsSync(folder) && statSync(folder).isDirectory() ? readdirSync(folder).filter(f => f.startsWith('before-migrate-v1-to-v2-') && f.endsWith('.sqlite3')).map(f => join(folder, f)) : []; };
+const sha = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 const safety = {};
+let migration = {};
 if (code === 0) {
-  const second = spawn(bin, [], { env: { ...process.env, UNHLW_DATA_ROOT: dataRoot, UNHLW_TEST_SCHEMA_VERSION: '2' }, stdio: 'ignore' });
-  const until = Date.now() + 60000;
-  while (Date.now() < until && Object.keys(modules).some(name => backupsOf(name).length === 0)) await new Promise(r => setTimeout(r, 250));
-  second.kill();
-  await new Promise(done => (second.exitCode !== null || second.signalCode ? done() : second.on('exit', done)));
+  const terminalFile = join(dataRoot, modules.terminal[0], modules.terminal[1]);
+  const terminalBefore = sha(terminalFile);
+  // Make Terminal's backup location unusable (a file where the folder must go), so confirming its upgrade cannot get a safety copy.
+  writeFileSync(join(dataRoot, modules.terminal[0], 'backups'), 'in the way', { mode: 0o600 });
+  const out2 = join(dir, 'results-migration.json');
+  const second = spawn(bin, [], { env: { ...process.env, UNHLW_DATA_ROOT: dataRoot, UNHLW_TEST_SCHEMA_VERSION: '2', UNHLW_SELFTEST_OUT: out2, UNHLW_SELFTEST_SCENARIO: 'migration' }, stdio: 'inherit' });
+  const timer2 = setTimeout(() => { console.error('Migration phase timed out after 90 s'); second.kill(); }, 90000);
+  safety.exit_code = await new Promise(done => second.on('exit', done));
+  clearTimeout(timer2);
+  migration = existsSync(out2) ? (JSON.parse(readFileSync(out2, 'utf8')).migration ?? {}) : {};
+  const read = (path, sql) => { const db = new DatabaseSync(path, { readOnly: true }); try { return db.prepare(sql).get(); } finally { db.close(); } };
   for (const [name, [folder, file, table]] of Object.entries(modules)) {
     const copies = backupsOf(name);
-    const read = (path, sql) => { const db = new DatabaseSync(path, { readOnly: true }); try { return db.prepare(sql).get(); } finally { db.close(); } };
     safety[name] = { copies: copies.length };
     if (copies.length === 1) {
       const original = join(dataRoot, folder, file);
@@ -46,7 +55,10 @@ if (code === 0) {
       safety[name].original_rows = read(original, `SELECT count(*) AS n FROM ${table}`).n;
     }
   }
+  safety.terminal.file_untouched = sha(terminalFile) === terminalBefore;
 }
+const verified = name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; };
+const drop = new Set();
 
 // Privacy (docs/DATA-AUDIT-U12.md F1): every module's data folder and everything in it, including the -wal/-shm files and the
 // host's backups, must be unreadable by other users. Unix modes only; Windows profile folders are per-user already.
@@ -58,6 +70,7 @@ if (process.platform !== 'win32' && existsSync(dataRoot)) {
 const results = existsSync(outFile) ? JSON.parse(readFileSync(outFile, 'utf8')) : {};
 rmSync(dir, { recursive: true, force: true });
 results.data_safety = safety;
+results.migration = migration;
 results.group_or_world_accessible = exposed.map(p => p.replace(dataRoot, '<root>'));
 console.log(JSON.stringify(results, null, 2));
 
@@ -96,7 +109,10 @@ const checks = {
   'iframe themes independent of the host': swish.frame_theme !== swish.host_theme && terminal.frame_theme !== terminal.host_theme && ember.frame_theme !== ember.host_theme,
   'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,
   'close handshake: all modules flushed before exit': close.timed_out === false && ['swish', 'terminal', 'ember'].every(m => (close.active_modules ?? []).includes(m)),
-  'U-14: an older file gets a verified copy before the module opens it (all three), and the originals are untouched': Object.keys(modules).every(name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; }),
+  'U-14: with older files, no module opened or changed anything at start, and the dialog explained the upgrade': migration.start_states?.every(state => state === 'needsConfirmation') === true && migration.no_frames_at_start === true && migration.commands_absent_before?.every(Boolean) === true && migration.dialog_explains === true,
+  'U-14: declining, and a confirm whose safety copy could not be made, both left that module closed, with an honest error and its file untouched': migration.declined_stays_closed === true && migration.failed_copy_refused === true && migration.still_closed_after_failed_copy === true && safety.terminal?.copies === 0 && safety.terminal?.file_untouched === true,
+  'U-14: confirming made one verified copy first and opened the module (dialog for Ember, command for Swish); originals intact': migration.ember_ready === true && migration.swish_ready === true && verified('ember') && verified('swish'),
+  'U-14: a second confirm is refused, and only confirmed modules produced a notice': migration.repeat_confirm_refused === true && JSON.stringify(migration.notices_for) === JSON.stringify(['ember', 'swish']) && migration.ok === true && safety.exit_code === 0,
   'data folders and files are owner-only (no group or world access)': exposed.length === 0,
   'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,
 };

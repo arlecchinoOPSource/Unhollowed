@@ -85,15 +85,8 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
         ])
         .setup(move |app, _api| {
             let path = data_dir.join(INFO.database_file);
-            let connection = match unhlw_data_safety::prepare(
-                INFO.name,
-                &path,
-                &data_dir.join("backups"),
-                unhlw_data_safety::effective_version(INFO.schema_version),
-            ) {
-                unhlw_data_safety::Prepared::Refused(reason) => Err(reason),
-                _ => commands::open_at(&path),
-            };
+            // The host registers this plugin only once opening the file is allowed (docs/DATA-SAFETY-U14.md).
+            let connection = commands::open_at(&path);
             if let Err(reason) = &connection {
                 eprintln!("ember storage: {reason}");
             }
