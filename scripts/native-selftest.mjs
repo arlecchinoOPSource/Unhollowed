@@ -2,7 +2,7 @@
 // embedded Swish UI, and checks the JSON it reports. Opens a window for about 20 seconds.
 // Needs `npm run build:modules` and a debug build first (see README).
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -48,9 +48,17 @@ if (code === 0) {
   }
 }
 
+// Privacy (docs/DATA-AUDIT-U12.md F1): every module's data folder and everything in it, including the -wal/-shm files and the
+// host's backups, must be unreadable by other users. Unix modes only; Windows profile folders are per-user already.
+const exposed = [];
+if (process.platform !== 'win32' && existsSync(dataRoot)) {
+  const walk = path => { for (const entry of [path, ...(statSync(path).isDirectory() ? readdirSync(path).flatMap(n => walk(join(path, n))) : [])]) if (!exposed.includes(entry) && (statSync(entry).mode & 0o077) !== 0) exposed.push(entry); return []; };
+  for (const [folder] of Object.values(modules)) if (existsSync(join(dataRoot, folder))) walk(join(dataRoot, folder));
+}
 const results = existsSync(outFile) ? JSON.parse(readFileSync(outFile, 'utf8')) : {};
 rmSync(dir, { recursive: true, force: true });
 results.data_safety = safety;
+results.group_or_world_accessible = exposed.map(p => p.replace(dataRoot, '<root>'));
 console.log(JSON.stringify(results, null, 2));
 
 const swish = results.slice ?? {};
@@ -89,6 +97,7 @@ const checks = {
   'no localStorage key shared by the modules (informational: they may have been empty at that point)': sharedKeys.length === 0,
   'close handshake: all modules flushed before exit': close.timed_out === false && ['swish', 'terminal', 'ember'].every(m => (close.active_modules ?? []).includes(m)),
   'U-14: an older file gets a verified copy before the module opens it (all three), and the originals are untouched': Object.keys(modules).every(name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; }),
+  'data folders and files are owner-only (no group or world access)': exposed.length === 0,
   'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,
 };
 let failed = 0;

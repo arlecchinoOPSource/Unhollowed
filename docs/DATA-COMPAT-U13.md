@@ -40,7 +40,7 @@ Rules for any future schema change (**Proposed**, to be written into each module
 
 ## Permissions
 
-- Folder `0700` and files `0600` on macOS (including the `-wal`, `-shm` and `backups/` contents) — true for Terminal and Ember, **not yet for Swish** (audit F1; **Proposed:** Swish sets the modes as the others do; a Swish PR, owner's go-ahead needed).
+- Folder `0700` and files `0600` on macOS (including the `-wal`, `-shm` and `backups/` contents) — true for all three since Swish PR 39 (audit F1), and guarded by the native test, which fails if any file or folder under a module's data folder, including the host's `backups/`, is group- or world-accessible.
 - The host passes a module's plugin its own folder only. No page has file-system or dialog permission; backups and exports use native dialogs opened from Rust.
 - The host's backups are written `0600` in a `0700` `backups/` folder inside the module's folder, so they are as private as the data they protect.
 - Windows: files inherit the permissions of the Roaming profile folder. Not verified natively (U-27); do not claim equivalent privacy there.
@@ -54,5 +54,4 @@ Rules for any future schema change (**Proposed**, to be written into each module
 ## Decisions needed from the owner
 
 1. Approve the five rules above for schema changes.
-2. Approve a Swish change to set `0700`/`0600` (F1).
-3. Decide, for U-15, whether Swish gets an expected-version check upstream or the host only warns (F4).
+2. Decide, for U-15, whether Swish gets an expected-version check upstream or the host only warns (F4).

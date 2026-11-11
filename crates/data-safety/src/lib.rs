@@ -120,12 +120,27 @@ fn private_file(path: &Path) -> std::io::Result<()> {
 
 /// Copies `source` into `target` with SQLite's online backup, which is consistent while the source is open and
 /// includes changes still in its write-ahead log.
+///
+/// The target is created owner-only *before* SQLite touches it, and the copy is taken out of WAL mode: a backup is one
+/// self-contained file, and a WAL-mode copy would grow `-wal`/`-shm` files (with default modes) every time it is opened.
 fn copy_database(source: &Path, target: &Path) -> Result<(), String> {
+    if !target.exists() {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+        options
+            .open(target)
+            .map_err(|e| format!("cannot create the copy: {e}"))?;
+    }
     let from = read_only(source).map_err(|e| format!("cannot read the data file: {e}"))?;
     let mut to = Connection::open(target).map_err(|e| format!("cannot create the copy: {e}"))?;
     OnlineBackup::new(&from, &mut to)
         .and_then(|backup| backup.run_to_completion(64, Duration::from_millis(5), None))
-        .map_err(|e| format!("the copy failed: {e}"))
+        .map_err(|e| format!("the copy failed: {e}"))?;
+    to.pragma_update(None, "journal_mode", "DELETE")
+        .map_err(|e| format!("the copy could not be finished: {e}"))?;
+    Ok(())
 }
 
 /// The copy must be a database that opens, passes SQLite's own integrity check and has the same identity (schema
