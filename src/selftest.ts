@@ -77,6 +77,11 @@ async function swish(frame: HTMLIFrameElement, report: Record<string, unknown>) 
   // Read it back through the module's own command, the way the app would after a restart.
   const stored = JSON.stringify(await invoke('plugin:swish|load_workspace'));
   report.project_stored_via_plugin = stored.includes('Slice synthetic project');
+
+  // Backup and restore open native file dialogs, which a test cannot drive. These two never open one: they prove the
+  // commands are routed and permitted and that their state is managed by the plugin (nothing was restored, so undo has nothing to undo).
+  try { await invoke('plugin:swish|cancel_restore'); report.backup_commands_routed = true; } catch (error) { report.backup_commands_routed = false; report.backup_error = String(error); }
+  try { await invoke('plugin:swish|undo_restore'); report.undo_without_restore_refused = false; } catch (error) { report.undo_without_restore_refused = JSON.stringify(error).includes('no restore to undo'); }
   tail(w, report);
 }
 

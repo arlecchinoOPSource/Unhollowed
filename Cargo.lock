@@ -3139,6 +3139,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "swish"
+version = "2.0.1"
+dependencies = [
+ "serde",
+ "swish-data",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+]
+
+[[package]]
 name = "swish-data"
 version = "0.1.0"
 dependencies = [
@@ -3459,7 +3470,7 @@ name = "tauri-plugin-swish"
 version = "0.1.0"
 dependencies = [
  "serde_json",
- "swish-data",
+ "swish",
  "tauri",
  "tauri-plugin",
  "unhlw-host-contract",

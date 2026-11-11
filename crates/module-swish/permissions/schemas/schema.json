@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the cancel_restore command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-cancel-restore",
+          "markdownDescription": "Enables the cancel_restore command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the cancel_restore command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-cancel-restore",
+          "markdownDescription": "Denies the cancel_restore command without any pre-configured scope."
+        },
+        {
           "description": "Enables the create_project command without any pre-configured scope.",
           "type": "string",
           "const": "allow-create-project",
@@ -343,6 +355,18 @@
           "markdownDescription": "Denies the delete_reminder command without any pre-configured scope."
         },
         {
+          "description": "Enables the export_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-export-backup",
+          "markdownDescription": "Enables the export_backup command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the export_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-export-backup",
+          "markdownDescription": "Denies the export_backup command without any pre-configured scope."
+        },
+        {
           "description": "Enables the finish_exit command without any pre-configured scope.",
           "type": "string",
           "const": "allow-finish-exit",
@@ -355,6 +379,18 @@
           "markdownDescription": "Denies the finish_exit command without any pre-configured scope."
         },
         {
+          "description": "Enables the inspect_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-inspect-backup",
+          "markdownDescription": "Enables the inspect_backup command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the inspect_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-inspect-backup",
+          "markdownDescription": "Denies the inspect_backup command without any pre-configured scope."
+        },
+        {
           "description": "Enables the load_workspace command without any pre-configured scope.",
           "type": "string",
           "const": "allow-load-workspace",
@@ -365,6 +401,18 @@
           "type": "string",
           "const": "deny-load-workspace",
           "markdownDescription": "Denies the load_workspace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the restore_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-backup",
+          "markdownDescription": "Enables the restore_backup command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the restore_backup command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-backup",
+          "markdownDescription": "Denies the restore_backup command without any pre-configured scope."
         },
         {
           "description": "Enables the restore_reminder command without any pre-configured scope.",
@@ -389,6 +437,18 @@
           "type": "string",
           "const": "deny-set-reminder-completed",
           "markdownDescription": "Denies the set_reminder_completed command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the undo_restore command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-undo-restore",
+          "markdownDescription": "Enables the undo_restore command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the undo_restore command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-undo-restore",
+          "markdownDescription": "Denies the undo_restore command without any pre-configured scope."
         },
         {
           "description": "Enables the update_project command without any pre-configured scope.",
