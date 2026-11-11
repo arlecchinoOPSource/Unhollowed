@@ -271,3 +271,45 @@ fn restore_into_an_empty_folder_needs_no_safety_copy() {
     assert_eq!(restore(&backup.path, &target).unwrap().safety_copy, None);
     assert_eq!(notes(&target), ["only"]);
 }
+
+#[test]
+fn a_backup_appears_under_its_final_name_only_when_complete_and_failures_leave_nothing() {
+    let dir = scratch("atomic");
+    let db = dir.join("m.sqlite3");
+    let _w = make_db(&db, 1, &["x"]);
+    let copy = backup_verified(&db, &dir.join("backups"), "ok").unwrap();
+    let listed: Vec<String> = std::fs::read_dir(dir.join("backups"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(
+        listed,
+        [copy
+            .path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned()],
+        "no .partial left behind"
+    );
+    assert_eq!(
+        notes(&copy.path),
+        ["x"],
+        "the file with the final name is complete"
+    );
+    // A source that cannot be read: an error, and nothing in the folder.
+    let empty = scratch("atomic-failure");
+    assert!(
+        backup_verified(
+            &empty.join("missing.sqlite3"),
+            &empty.join("backups"),
+            "bad"
+        )
+        .is_err()
+    );
+    assert_eq!(
+        std::fs::read_dir(empty.join("backups")).unwrap().count(),
+        0,
+        "a failed backup leaves no file, partial or final"
+    );
+}

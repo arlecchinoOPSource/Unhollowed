@@ -187,7 +187,22 @@ pub fn backup_verified(db: &Path, dir: &Path, label: &str) -> Result<Backup, Str
         path = dir.join(format!("before-{label}-{}-{n}.sqlite3", stamp()));
         n += 1;
     }
-    let outcome = copy_database(db, &path).and_then(|()| verify(&path, db));
+    // Built under a temporary name and renamed only once it verifies, so a file with its final name is always a complete,
+    // checked backup: nothing that lists the folder (a restore screen, a test) can ever pick up a half-written one.
+    let partial = dir.join(format!(
+        "{}.partial",
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("backup")
+    ));
+    let _ = std::fs::remove_file(&partial);
+    let outcome = copy_database(db, &partial)
+        .and_then(|()| verify(&partial, db))
+        .and_then(|user_version| {
+            std::fs::rename(&partial, &path)
+                .map(|()| user_version)
+                .map_err(|e| format!("the copy could not be put in place: {e}"))
+        });
     match outcome {
         Ok(user_version) => {
             let _ = private_file(&path);
@@ -199,7 +214,7 @@ pub fn backup_verified(db: &Path, dir: &Path, label: &str) -> Result<Backup, Str
             })
         }
         Err(error) => {
-            let _ = std::fs::remove_file(&path);
+            let _ = std::fs::remove_file(&partial);
             Err(error)
         }
     }
