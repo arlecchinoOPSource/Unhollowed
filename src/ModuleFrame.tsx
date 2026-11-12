@@ -27,7 +27,7 @@ export function ModuleFrame({ name, title, front, leaving, onFront, onReady }: {
     win?.addEventListener('focus', () => onFront(name));
     void runSelfTest(name, frame.current);
   }
-  return <div className="module-slot" data-front={front} data-leaving={leaving}>
+  return <div className="module-slot" data-unit={name} data-front={front} data-leaving={leaving}>
     <iframe ref={frame} className="module-frame" title={title} src={moduleUrl(name)} onLoad={loaded} />
   </div>;
 }

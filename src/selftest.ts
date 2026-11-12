@@ -236,7 +236,19 @@ async function runAll(): Promise<void> {
     visible_frames: [...document.querySelectorAll('.module-slot')].filter(slot => getComputedStyle(slot).visibility === 'visible').length,
     images_loaded: [...document.querySelectorAll('.rack img')].every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0),
   };
-  await invoke('selftest_report', { name: 'layout', data: { rack, front_frame_width: Math.max(...widths.map(w => w ?? 0)), host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_bottom: stage.bottom } });
+  // The hologram (docs/HOLOGRAM-U24.md): drawn, decorative, and never over the revealed interface.
+  const overlay = document.querySelector('.holo') as HTMLElement | null;
+  const beamCanvas = overlay?.querySelector('canvas') as HTMLCanvasElement | null;
+  let beamPixels = 0;
+  if (beamCanvas && beamCanvas.width > 0) { const px = beamCanvas.getContext('2d')!.getImageData(0, 0, beamCanvas.width, beamCanvas.height).data; for (let i = 3; i < px.length; i += 4) if (px[i] > 0) beamPixels++; }
+  const stageEl = document.querySelector('.stage') as HTMLElement;
+  const holo = {
+    overlay: !!overlay, aria_hidden: overlay?.getAttribute('aria-hidden') === 'true',
+    pointer_none: !!overlay && [overlay, ...overlay.querySelectorAll('*')].every(e => getComputedStyle(e).pointerEvents === 'none'),
+    beam_pixels: beamPixels, margin_px: parseFloat(getComputedStyle(stageEl).paddingTop),
+    interface_unclipped: [...document.querySelectorAll('.module-slot')].filter(slot => getComputedStyle(slot).visibility === 'visible').every(slot => { const c = getComputedStyle(slot).clipPath; return c === 'none' || /inset\(0(px)? 0(px|%)? 0(px|%)? 0(px|%)?\)/.test(c); }),
+  };
+  await invoke('selftest_report', { name: 'layout', data: { holo, rack, front_frame_width: Math.max(...widths.map(w => w ?? 0)), host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_content_height: stage.height - parseFloat(getComputedStyle(stageEl).paddingTop) - parseFloat(getComputedStyle(stageEl).paddingBottom), stage_bottom: stage.bottom } });
   await invoke('selftest_finish');
 }
 

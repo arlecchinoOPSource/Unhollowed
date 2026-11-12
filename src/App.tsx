@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { ModuleFrame } from './ModuleFrame';
 import { MODULES, type ModuleName } from './modules';
@@ -8,6 +8,8 @@ import { RestoreDialog } from './RestoreDialog';
 import { listen } from '@tauri-apps/api/event';
 import { isExternalChange } from './changes';
 import { Rack } from './Rack';
+import { Hologram } from './Hologram';
+import { Projection } from './projection';
 
 const NAMES = MODULES.map(module => module.name);
 /** How long a frame may take to load before its projector shows an error. */
@@ -34,6 +36,8 @@ export function App() {
     setRack(rackRef.current);
   }, []);
   const [leaving, setLeaving] = useState<ModuleName[]>([]);
+  // The hologram: how far each interface is projected (docs/HOLOGRAM-U24.md). Power-off waits for it to retract after the save.
+  const projection = useMemo(() => new Projection(NAMES), []);
   const [unsaved, setUnsaved] = useState<Record<string, string>>({});
   // Told once at start: e.g. a verified copy was made before a module's data was upgraded (docs/DATA-SAFETY-U14.md).
   const [notices, setNotices] = useState<{ module: string; message: string }[]>([]);
@@ -97,13 +101,17 @@ export function App() {
       setUnsaved(current => ({ ...current, [name]: current[name] ?? 'It did not confirm that it saved.' }));
       return result;
     }
-    // Saved: hide it at once and leave its close sound time to play, as the standalone apps do, then remove it.
+    // Saved: the interface retracts into its projector (it stayed on stage, unchanged, while the save ran), then it is hidden;
+    // its close sound gets its requested time to play, as in the standalone apps, and the frame is removed.
+    const started = performance.now();
+    // (the cap only guards against a frame loop that is not running; the retract itself takes 0.9 s)
+    await Promise.race([projection.retract(name), new Promise(resolve => setTimeout(resolve, 2500))]);
     setLeaving(current => [...current, name]);
-    await new Promise(resolve => setTimeout(resolve, result.lingerMs));
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, result.lingerMs - (performance.now() - started))));
     setLeaving(current => current.filter(n => n !== name));
     update(r => rackModel.finishPowerOff(r, name));
     return result;
-  }, [update]);
+  }, [update, projection]);
 
   async function reload(name: ModuleName) {
     setChangedElsewhere(current => current.filter(n => n !== name));
@@ -127,6 +135,7 @@ export function App() {
   const projectorStates = Object.fromEntries(NAMES.map(name => [name, rackModel.projectorState(rack, name)])) as Record<ModuleName, rackModel.ProjectorState>;
   const keepOpen = useCallback((name: ModuleName) => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name)); }, [update]);
 
+  const owner = rackModel.stageOwner(rack);
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
   return <main className="host">
@@ -169,10 +178,11 @@ export function App() {
     </div>)}
     </div>
     <div className="workspace">
+      <Hologram projection={projection} units={NAMES} states={projectorStates} owner={owner} />
       <Rack units={MODULES} states={projectorStates} actions={{ powerOn: wantOn, front: bringToFront, powerOff: name => void powerOff(name), keepOpen }} />
       <section className="stage" aria-label="Active modules">
         {shown.length
-          ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={rack.front === module.name || (rack.front === null && rack.phase[module.name] === 'error')} leaving={leaving.includes(module.name)} onFront={bringToFront} onReady={ready} />)
+          ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={owner === module.name} leaving={leaving.includes(module.name)} onFront={bringToFront} onReady={ready} />)
           : <p className="idle">All projectors are off.</p>}
       </section>
     </div>

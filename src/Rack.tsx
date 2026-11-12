@@ -90,6 +90,9 @@ export function Rack({ units, states, actions }: {
         <div className="rack-box" style={place(layer(`${name}-keys-disabled.png`).world_rect, unit)}><Img file={`${name}-keys-disabled.png`} className="disabled-art" /></div>
         {keyButton('i')}{keyButton('o')}
         <Img file={`${name}-glow.png`} className="glow" />
+        {/* U-24: the projection screen opens and its ring charges; `--ap`, `--so`, `--ch` are set by the hologram layer */}
+        <div className="rack-box emit emit-screen" style={place(layer(`${name}-emitter-screen.png`).world_rect, unit)}><Img file={`${name}-emitter-screen.png`} /></div>
+        <div className="rack-box emit emit-ring" style={place(layer(`${name}-emitter-ring.png`).world_rect, unit)}><Img file={`${name}-emitter-ring.png`} /></div>
         {[1, 2, 3].map(i => <div key={i} className={`rack-box chase c${i}`} style={place(layer(`${name}-chase-${i}.png`).world_rect, unit)}><Img file={`${name}-chase-${i}.png`} /></div>)}
         <div className="rack-box error" style={place(layer(`${name}-error.png`).world_rect, unit)}><Img file={`${name}-error.png`} /></div>
         <span className="rack-status" role="status">{title}: {state.replace('-', ' ')}</span>

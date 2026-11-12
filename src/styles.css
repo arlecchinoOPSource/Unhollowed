@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 .host { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
-.workspace { min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.workspace { --holo-m: clamp(14px, 3.5vh, 30px); position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .host-top { min-width: 0; }
 .host-bar { display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 1px solid #2a3033; flex-wrap: wrap; }
 .host-bar h1 { margin: 0; font-size: 1.1rem; letter-spacing: .12em; text-transform: uppercase; }
@@ -11,10 +11,16 @@ html, body, #root { height: 100%; margin: 0; }
 .power:focus-visible { outline: 2px solid #9ad1ff; outline-offset: 2px; }
 .power:disabled { cursor: default; }
 .note { margin: 0; color: #8b979c; font-size: .85rem; }
-.stage { min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); background: #2a3033; }
+.stage { min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); background: #0b0d0e;
+  /* The hologram's frame and landing glow need the margin M around the interface (docs/HOLOGRAM-U24.md). */
+  padding: calc(1.5 * var(--holo-m)) calc(1.5 * var(--holo-m)) calc(1.5 * var(--holo-m)) calc(2.5 * var(--holo-m)); }
 /* One module in front, full size. The others stay mounted at the same size, only invisible (never display: none, so their
    timers and drafts keep running, docs/LIFECYCLE-U11.md); the rack keys or the host bar bring one forward. */
 .stage > .module-slot { grid-area: 1 / 1; }
+/* The interface is only ever clipped from the right, by the hologram layer's reveal (1 = fully shown); never covered. */
+.module-slot[data-unit='terminal'] { clip-path: inset(0 calc((1 - var(--surface-terminal, 1)) * 100%) 0 0); }
+.module-slot[data-unit='ember'] { clip-path: inset(0 calc((1 - var(--surface-ember, 1)) * 100%) 0 0); }
+.module-slot[data-unit='swish'] { clip-path: inset(0 calc((1 - var(--surface-swish, 1)) * 100%) 0 0); }
 .module-slot[data-front='false'] { visibility: hidden; pointer-events: none; }
 .stage > .idle { grid-area: 1 / 1; }
 .slot-controls { display: inline-flex; gap: 6px; }
@@ -42,7 +48,7 @@ html, body, #root { height: 100%; margin: 0; }
 .rack .glow { opacity: 0; transition: opacity .9s ease-out; }
 .rack .pressed, .rack .hover, .rack .disabled-art, .rack .chase, .rack .error { opacity: 0; }
 .s-booting .glow, .s-active .glow, .s-error .glow { opacity: 1; }
-.s-booting .glow { animation: rack-flicker .9s steps(1) 1 forwards; }
+.s-booting .glow { animation: rack-ramp .6s ease-out 1 forwards; } /* a smooth ramp: the old flicker changed five times in 0.54 s (faster than 3 Hz) */
 .s-active .chase { animation: rack-chase 1.25s linear infinite; }
 .s-active .chase.c2 { animation-delay: .4167s; }
 .s-active .chase.c3 { animation-delay: .8333s; }
@@ -55,12 +61,27 @@ html, body, #root { height: 100%; margin: 0; }
 .rack[data-powered='true'] .rack-needle { animation: rack-swing 2.5s ease-in-out infinite alternate; }
 .rack .m2 .rack-needle { animation-duration: 1.9s; animation-delay: -.7s; }
 .rack .rack-needle { transform: rotate(7deg); }
-@keyframes rack-flicker { 0% { opacity: 0 } 12% { opacity: .7 } 20% { opacity: .1 } 34% { opacity: .9 } 46% { opacity: .3 } 60%, 100% { opacity: 1 } }
+@keyframes rack-ramp { from { opacity: 0 } to { opacity: 1 } }
 @keyframes rack-chase { 0% { opacity: .05 } 12% { opacity: 1 } 30%, 100% { opacity: .05 } }
 @keyframes rack-blink { 0% { opacity: 1 } 50% { opacity: 0 } }
 @keyframes rack-swing { from { transform: rotate(-29deg) } to { transform: rotate(42deg) } }
 @media (prefers-reduced-motion: reduce) {
-  .rack .rack-needle, .s-active .chase, .s-error .error, .s-booting .glow { animation: none; }
+  .rack .rack-needle, .s-active .chase, .s-error .error, .s-booting .glow, .holo[data-shimmer='on'] .holo-beam { animation: none; }
   .s-active .chase, .s-error .error { opacity: 1; }
   .rack .glow { transition: none; }
 }
+
+/* U-24: the hologram (docs/HOLOGRAM-U24.md). Everything decorative, additive and ignoring the pointer. */
+.rack .emit { mix-blend-mode: plus-lighter; }
+.rack .emit img { mix-blend-mode: normal; }
+.rack .emit-screen { opacity: var(--so, 0); clip-path: inset(0 calc((1 - var(--ap, 0)) * 50%)); }
+.rack .emit-ring { opacity: var(--ch, 0); }
+.holo { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 5; }
+.holo * { pointer-events: none; }
+.holo-beam { position: absolute; left: 0; top: 0; width: 100%; height: 100%; mix-blend-mode: plus-lighter; }
+.holo[data-shimmer='on'] .holo-beam { animation: holo-shimmer 6s ease-in-out infinite; }
+.holo-tint { position: absolute; opacity: 0; mix-blend-mode: plus-lighter; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.holo-frame { position: absolute; box-sizing: border-box; border-style: solid; border-color: transparent; opacity: 0; mix-blend-mode: plus-lighter; }
+.holo-sweep-box { position: absolute; overflow: hidden; }
+.holo-sweep-box .holo-tint { top: 0; height: 100%; }
+@keyframes holo-shimmer { 0%, 100% { opacity: .82 } 50% { opacity: 1 } }

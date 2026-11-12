@@ -28,7 +28,7 @@ Issues: [U-21 (#21)](https://github.com/arlecchinoOPSource/Unhollowed/issues/21)
 - **The shutting-down look was not seen in motion** (the stubbed host saved too fast; a real save takes longer). The model state and the CSS exist; the fade itself is unobserved.
 - The boot is a fixed flicker, not tied to real progress; the "booting" state lasts exactly until the frame loads.
 - Animated screens are single frames (the art exports one), so the displays do not animate; only needles, chase LEDs and the glow do.
-- **U-24 (hologram) is not started**: no beam or emergence art exists and the stage is a plain rectangle. The rack keys and the host bar are two sets of controls; removing the host bar's is a design decision.
+- U-24 (hologram) is built in [HOLOGRAM-U24.md](HOLOGRAM-U24.md). The rack keys and the host bar are two sets of controls; removing the host bar's is a design decision.
 - Keyboard shortcuts for switching modules do not exist; with only one module visible, a hidden module is reached through the rack key or the host bar.
 - Layer images are decoded at startup (3.9 MB); no measurement of load time or memory yet.
 
