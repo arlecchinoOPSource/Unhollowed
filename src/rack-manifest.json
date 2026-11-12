@@ -681,6 +681,291 @@
         122
       ],
       "note": "blink in the frontend, e.g. 2 Hz"
+    },
+    {
+      "file": "terminal-emitter-screen.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "terminal",
+      "world_rect": [
+        1.61,
+        4.49,
+        3.54,
+        5.8
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "aperture: clip-path inset(0 (1-aperture)*50%), a slit opening from the screen centre",
+      "animated": false
+    },
+    {
+      "file": "terminal-emitter-ring.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "terminal",
+      "world_rect": [
+        1.61,
+        4.49,
+        3.54,
+        5.8
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "charge: opacity",
+      "animated": false
+    },
+    {
+      "file": "terminal-hologram-frame-9slice.png",
+      "px": [
+        256,
+        256
+      ],
+      "hologram": true,
+      "unit": "terminal",
+      "anchor": "T",
+      "nine_slice": {
+        "slice_px": 96,
+        "stage_edge_px": 64,
+        "css": "box = T outset by M; border-width 1.5*M; border-image-slice 96; border-image-repeat stretch; no fill"
+      },
+      "blend": "additive (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down",
+      "progress": "surface",
+      "animated": false
+    },
+    {
+      "file": "ember-emitter-screen.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "ember",
+      "world_rect": [
+        1.61,
+        4.49,
+        -0.6,
+        1.66
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "aperture: clip-path inset(0 (1-aperture)*50%), a slit opening from the screen centre",
+      "animated": false
+    },
+    {
+      "file": "ember-emitter-ring.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "ember",
+      "world_rect": [
+        1.61,
+        4.49,
+        -0.6,
+        1.66
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "charge: opacity",
+      "animated": false
+    },
+    {
+      "file": "ember-hologram-frame-9slice.png",
+      "px": [
+        256,
+        256
+      ],
+      "hologram": true,
+      "unit": "ember",
+      "anchor": "T",
+      "nine_slice": {
+        "slice_px": 96,
+        "stage_edge_px": 64,
+        "css": "box = T outset by M; border-width 1.5*M; border-image-slice 96; border-image-repeat stretch; no fill"
+      },
+      "blend": "additive (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down",
+      "progress": "surface",
+      "animated": false
+    },
+    {
+      "file": "swish-emitter-screen.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "swish",
+      "world_rect": [
+        1.61,
+        4.49,
+        -4.74,
+        -2.48
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "aperture: clip-path inset(0 (1-aperture)*50%), a slit opening from the screen centre",
+      "animated": false
+    },
+    {
+      "file": "swish-emitter-ring.png",
+      "px": [
+        576,
+        452
+      ],
+      "hologram": true,
+      "unit": "swish",
+      "world_rect": [
+        1.61,
+        4.49,
+        -4.74,
+        -2.48
+      ],
+      "px_per_unit": 200,
+      "anchor": "unit (world_rect)",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down, error",
+      "progress": "charge: opacity",
+      "animated": false
+    },
+    {
+      "file": "swish-hologram-frame-9slice.png",
+      "px": [
+        256,
+        256
+      ],
+      "hologram": true,
+      "unit": "swish",
+      "anchor": "T",
+      "nine_slice": {
+        "slice_px": 96,
+        "stage_edge_px": 64,
+        "css": "box = T outset by M; border-width 1.5*M; border-image-slice 96; border-image-repeat stretch; no fill"
+      },
+      "blend": "additive (CSS mix-blend-mode: plus-lighter)",
+      "states": "booting, active, shutting-down",
+      "progress": "surface",
+      "animated": false
+    },
+    {
+      "file": "hologram-frame-error-9slice.png",
+      "px": [
+        256,
+        256
+      ],
+      "hologram": true,
+      "anchor": "T",
+      "nine_slice": {
+        "slice_px": 96,
+        "stage_edge_px": 64,
+        "css": "as the unit frame, but border-image-repeat: round so the dashes keep their size"
+      },
+      "blend": "additive (CSS mix-blend-mode: plus-lighter)",
+      "states": "error",
+      "progress": "none",
+      "animated": false
+    },
+    {
+      "file": "hologram-beam-strip.png",
+      "px": [
+        512,
+        128
+      ],
+      "hologram": true,
+      "anchor": "quad E -> T: left side = vertical line through E's centre over E's height, right side = T's left edge",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "booting, active, shutting-down",
+      "progress": "beam: clip along the length; opacity",
+      "animated": false,
+      "stretch": "stretch to the anchor"
+    },
+    {
+      "file": "hologram-beam-strip-error.png",
+      "px": [
+        512,
+        128
+      ],
+      "hologram": true,
+      "anchor": "same quad as hologram-beam-strip",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "error",
+      "progress": "none",
+      "animated": false,
+      "stretch": "stretch to the anchor"
+    },
+    {
+      "file": "hologram-tile-scan.png",
+      "px": [
+        64,
+        64
+      ],
+      "hologram": true,
+      "anchor": "tile inside the beam quad before it is transformed (64 px tile, repeat)",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "booting, active, shutting-down, error",
+      "progress": "beam",
+      "animated": false,
+      "stretch": "tile"
+    },
+    {
+      "file": "hologram-landing.png",
+      "px": [
+        64,
+        192
+      ],
+      "hologram": true,
+      "anchor": "T: strip M wide just left of T's left edge, stretched to T's height",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "booting, active, shutting-down, error",
+      "progress": "landing: opacity",
+      "animated": false,
+      "stretch": "stretch to the anchor"
+    },
+    {
+      "file": "hologram-sweep.png",
+      "px": [
+        64,
+        256
+      ],
+      "hologram": true,
+      "anchor": "T: strip 6% of T's width, T's height, placed just right of the reveal edge (over the part not yet revealed)",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "booting, shutting-down",
+      "progress": "surface: position; opacity 0 when surface is 0 or 1",
+      "animated": false,
+      "stretch": "stretch to the anchor"
+    },
+    {
+      "file": "hologram-lens.png",
+      "px": [
+        256,
+        256
+      ],
+      "hologram": true,
+      "anchor": "E: centred on E, 2.4 x E's width, square",
+      "blend": "additive (CSS mix-blend-mode: plus-lighter); neutral white art, tint with mask-image over the unit colour",
+      "states": "booting, active, shutting-down, error",
+      "progress": "aperture: opacity",
+      "animated": false,
+      "stretch": "stretch to the anchor"
     }
   ],
   "meters": [
@@ -763,6 +1048,104 @@
         -5.46,
         -4.86
       ]
+    }
+  },
+  "hologram": {
+    "concept": "interface is beamed from the unit's PROJECTION screen (E) to a stage rectangle (T) right of the rack",
+    "pointer_events": "none on every hologram piece; no piece may capture input",
+    "error_colour_css_rgb": [
+      1.0,
+      0.4024,
+      0.3425
+    ],
+    "progress": {
+      "p": "master progress 0..1 (0 = nothing projected, 1 = fully projected); booting runs 0 -> 1, shutting-down 1 -> 0",
+      "aperture": "smoothstep(0.00, 0.25, p)",
+      "charge": "smoothstep(0.00, 0.15, p)",
+      "beam": "smoothstep(0.15, 0.50, p)",
+      "landing": "smoothstep(0.45, 0.60, p)",
+      "surface": "smoothstep(0.50, 0.95, p)",
+      "settle": "smoothstep(0.95, 1.00, p)"
+    },
+    "durations_s": {
+      "booting": 1.2,
+      "booting_max": 1.6,
+      "shutting_down": 0.9,
+      "retarget": 0.45
+    },
+    "emitters": {
+      "terminal": {
+        "screen_rect_E": [
+          2.3,
+          3.8,
+          4.23,
+          5.11
+        ],
+        "bezel_rect": [
+          2.11,
+          3.99,
+          4.04,
+          5.3
+        ],
+        "led_linear_rgb": [
+          0.03,
+          1.0,
+          0.42
+        ],
+        "colour_css_rgb": [
+          0.4024,
+          1.0,
+          0.7556
+        ]
+      },
+      "ember": {
+        "screen_rect_E": [
+          2.3,
+          3.8,
+          0.09,
+          0.97
+        ],
+        "bezel_rect": [
+          2.11,
+          3.99,
+          -0.1,
+          1.16
+        ],
+        "led_linear_rgb": [
+          1.0,
+          0.2,
+          0.015
+        ],
+        "colour_css_rgb": [
+          1.0,
+          0.6109,
+          0.3612
+        ]
+      },
+      "swish": {
+        "screen_rect_E": [
+          2.3,
+          3.8,
+          -4.05,
+          -3.17
+        ],
+        "bezel_rect": [
+          2.11,
+          3.99,
+          -4.24,
+          -2.98
+        ],
+        "led_linear_rgb": [
+          0.03,
+          0.22,
+          1.0
+        ],
+        "colour_css_rgb": [
+          0.4024,
+          0.6268,
+          1.0
+        ]
+      }
     }
   }
 }

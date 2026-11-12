@@ -105,3 +105,12 @@ export const mayFocus = (rack: Rack, name: string): boolean => rack.front === na
 
 /** Frames that must be mounted: everything that is not off. */
 export const mounted = (rack: Rack): string[] => rack.order;
+
+/**
+ * Who owns the stage right now: the module in front, or, when none is in front, the module that is saving or in error
+ * (its frame stays visible until it has retracted or the owner decided, so nothing unsaved is ever hidden).
+ */
+export function stageOwner(rack: Rack): string | null {
+  if (rack.front) return rack.front;
+  return [...rack.order].reverse().find(name => rack.phase[name] === 'closing' || rack.phase[name] === 'error') ?? null;
+}
