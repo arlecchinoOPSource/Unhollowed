@@ -4,12 +4,12 @@
  * drawing is `Hologram.tsx`. The art and its assembly recipe are the owner's (docs/RACK-ASSETS-U17-U22.md).
  *
  * One progress value `p` per module (0 = nothing projected, 1 = fully projected) drives every piece. Booting runs 0 -> 1 in
- * 1.2 s, but holds at 0.5 until the frame has really loaded; power-off holds at 1 while the module saves and only then
+ * 0.7 s, but holds at 0.5 until the frame has really loaded; power-off holds at 1 while the module saves and only then
  * runs 1 -> 0 in 0.9 s, so the interface never looks gone before it is saved. An error shows the interface in full at once.
  */
 import type { ProjectorState } from './lifecycle';
 
-export const BOOT_S = 1.2;
+export const BOOT_S = 0.7;
 export const SHUT_S = 0.9;
 export const SWITCH_S = 0.45;
 export const ERROR_RISE_PER_S = 4;
@@ -23,7 +23,7 @@ export const smooth = (a: number, b: number, x: number) => {
 };
 
 /** Stage margin M around the interface, from the window height: the frame, landing glow and beam need this room. */
-export const stageMargin = (windowHeight: number) => Math.min(30, Math.max(14, Math.round(windowHeight * 0.035)));
+export const stageMargin = (windowHeight: number) => Math.min(24, Math.max(12, Math.round(windowHeight * 0.028)));
 
 export type Pieces = { aperture: number; charge: number; beam: number; beamOpacity: number; lensOpacity: number; screenOpacity: number };
 export type Drive = { p: number; sw: number; retarget: boolean; err: boolean; rm: boolean };
