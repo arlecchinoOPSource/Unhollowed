@@ -6,8 +6,20 @@
  * - Exactly one `on` module is in front. Only the module in front may take keyboard focus.
  * - `closing` is the time between asking a module to save and its confirmation. It ends in `off` (saved) or back
  *   in `on` (the owner chose to keep it open because it did not confirm).
+ * - `error` is a module that failed to start or did not confirm that it saved. It stays mounted and keeps its data; the
+ *   owner keeps it open, retries the save, or powers it off anyway. Nothing leaves `error` by itself.
+ *
+ * What the projector shows (U-23) is derived from the phase and whether the frame has reported that it loaded:
+ * off, booting, active, shutting-down or error (`projectorState`). The five states and their transitions:
+ *
+ *   off --powerOn--> booting --markReady--> active --beginPowerOff--> shutting-down --finishPowerOff--> off
+ *   booting --fail--> error;  shutting-down --fail--> error;  error --keepOpen--> active (or booting if it never loaded)
+ *   error --beginPowerOff--> shutting-down (retry the save);  error --finishPowerOff--> off (owner accepts the loss)
  */
-export type Phase = 'off' | 'on' | 'closing';
+export type Phase = 'off' | 'on' | 'closing' | 'error';
+
+/** What a projector shows. */
+export type ProjectorState = 'off' | 'booting' | 'active' | 'shutting-down' | 'error';
 
 export type Rack = {
   phase: Record<string, Phase>;
@@ -21,6 +33,8 @@ export type Rack = {
    * and this power-on land in the same render.
    */
   epoch: Record<string, number>;
+  /** Whether the module's current frame has reported that it loaded. False from power-on until `markReady`. */
+  ready: Record<string, boolean>;
 };
 
 export const initial = (names: readonly string[]): Rack => ({
@@ -28,14 +42,25 @@ export const initial = (names: readonly string[]): Rack => ({
   order: [],
   front: null,
   epoch: Object.fromEntries(names.map(name => [name, 0])),
+  ready: Object.fromEntries(names.map(name => [name, false])),
 });
+
+/** What the projector for `name` shows right now. */
+export function projectorState(rack: Rack, name: string): ProjectorState {
+  switch (rack.phase[name]) {
+    case 'on': return rack.ready[name] ? 'active' : 'booting';
+    case 'closing': return 'shutting-down';
+    case 'error': return 'error';
+    default: return 'off';
+  }
+}
 
 const lastOn = (rack: Rack, except?: string): string | null =>
   [...rack.order].reverse().find(name => name !== except && rack.phase[name] === 'on') ?? null;
 
 export function powerOn(rack: Rack, name: string): Rack {
   if (rack.phase[name] !== 'off') return rack;
-  return { phase: { ...rack.phase, [name]: 'on' }, order: [...rack.order, name], front: name, epoch: { ...rack.epoch, [name]: rack.epoch[name] + 1 } };
+  return { phase: { ...rack.phase, [name]: 'on' }, order: [...rack.order, name], front: name, epoch: { ...rack.epoch, [name]: rack.epoch[name] + 1 }, ready: { ...rack.ready, [name]: false } };
 }
 
 export function bringToFront(rack: Rack, name: string): Rack {
@@ -43,22 +68,35 @@ export function bringToFront(rack: Rack, name: string): Rack {
   return { ...rack, order: [...rack.order.filter(n => n !== name), name], front: name };
 }
 
-/** Asks the module to save. It keeps running and keeps its state until `finishPowerOff`. */
+/** The frame loaded: the projector goes from booting to active. */
+export function markReady(rack: Rack, name: string): Rack {
+  if ((rack.phase[name] !== 'on' && rack.phase[name] !== 'error') || rack.ready[name]) return rack;
+  return { ...rack, ready: { ...rack.ready, [name]: true } };
+}
+
+/** The module failed to start, or did not confirm that it saved. It stays mounted with its data; the owner decides. */
+export function fail(rack: Rack, name: string): Rack {
+  if (rack.phase[name] !== 'on' && rack.phase[name] !== 'closing') return rack;
+  const phase = { ...rack.phase, [name]: 'error' as Phase };
+  return { ...rack, phase, front: rack.front === name ? lastOn({ ...rack, phase }, name) : rack.front };
+}
+
+/** Asks the module to save. It keeps running and keeps its state until `finishPowerOff`. Also the retry from `error`. */
 export function beginPowerOff(rack: Rack, name: string): Rack {
-  if (rack.phase[name] !== 'on') return rack;
+  if (rack.phase[name] !== 'on' && rack.phase[name] !== 'error') return rack;
   const phase = { ...rack.phase, [name]: 'closing' as Phase };
   return { ...rack, phase, front: rack.front === name ? lastOn({ ...rack, phase }, name) : rack.front };
 }
 
 /** The module confirmed it saved: only now is its frame removed. */
 export function finishPowerOff(rack: Rack, name: string): Rack {
-  if (rack.phase[name] !== 'closing') return rack;
-  return { ...rack, phase: { ...rack.phase, [name]: 'off' }, order: rack.order.filter(n => n !== name) };
+  if (rack.phase[name] !== 'closing' && rack.phase[name] !== 'error') return rack;
+  return { ...rack, phase: { ...rack.phase, [name]: 'off' }, order: rack.order.filter(n => n !== name), ready: { ...rack.ready, [name]: false } };
 }
 
 /** The module did not confirm and the owner keeps it open: nothing is lost, it is simply on again and in front. */
 export function keepOpen(rack: Rack, name: string): Rack {
-  if (rack.phase[name] !== 'closing') return rack;
+  if (rack.phase[name] !== 'closing' && rack.phase[name] !== 'error') return rack;
   return { ...rack, phase: { ...rack.phase, [name]: 'on' }, order: [...rack.order.filter(n => n !== name), name], front: name };
 }
 

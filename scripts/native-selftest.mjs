@@ -147,6 +147,7 @@ const checks = {
   'Terminal: entry stored through the plugin': terminal.entry_stored_via_plugin === true,
   'Ember: habit created through the real UI': ember.habit_visible_in_ember_ui === true,
   'Ember: habit stored through the plugin': ember.habit_stored_via_plugin === true,
+  'U-21/U-23: the rack shows every powered module as active, has six named buttons, fits the window, loaded all its images, and the front module has room (at least 380 px wide at 800 px)': layout.rack?.states?.every(state => state === 'active') === true && layout.rack?.keys === 6 && layout.rack?.keys_named === true && layout.rack?.fits_window === true && layout.rack?.images_loaded === true && layout.rack?.visible_frames === 1 && layout.front_frame_width >= 380,
   'U-11: switching modules keeps the frame, its page state and its running timer': life.same_frame_after_navigation === true && life.page_state_kept_in_background === true && life.timer_kept_running_in_background === true,
   'U-11: a background module cannot take focus; the module in front can': life.background_focus_blocked === true && life.front_focus_allowed === true && life.front_is_terminal === true,
   'U-11: power-off saved first, removed only that frame, and was refused when repeated': life.ember_confirmed_save === true && life.ember_frame_removed === true && life.others_untouched === true && life.power_off_again_is_refused === true,

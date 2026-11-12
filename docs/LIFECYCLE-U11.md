@@ -4,7 +4,7 @@ The rules below are implemented in `src/lifecycle.ts` (pure, unit tested), `src-
 
 ## Rules
 
-1. **A module is off, on or closing.** Power-on mounts its frame and puts it in front. Power-off asks it to save through its own close event; the frame stays mounted while it is `closing`.
+1. **A module is off, on, closing or in error** (the rack shows these as off, booting/active, shutting-down and error; see [RACK-U21-U23.md](RACK-U21-U23.md)). Power-on mounts its frame and puts it in front. Power-off asks it to save through its own close event; the frame stays mounted while it is `closing`.
 2. **Navigation never unmounts.** Bringing a module to the front (a button, a click inside it, or Tab moving into it) changes only which module is in front. The frame, its page state, its drafts and its running timers are untouched. Only a confirmed power-off removes a frame.
 3. **One module is in front, and only it may take keyboard focus.** A page has one focused element, so a background module that focuses itself (an autofocus at load, a timer) would take the keyboard from the module in use. The shim wraps `HTMLElement.focus()` and asks the host; a background or closing module's call does nothing. With no host answer nothing is restricted (a module run on its own is unaffected).
 4. **Power-off saves first.** `host_power_off` emits the module's close event and waits for its flush report (the same report the app-wide close uses), up to 8 s. On confirmation the frame is hidden, its close sound is left up to its requested linger (capped at 6.5 s), then it is removed.
@@ -15,7 +15,7 @@ The rules below are implemented in `src/lifecycle.ts` (pure, unit tested), `src-
 
 ## Background services and timers
 
-Nothing in this slice moves a frame out of view: powered-on modules are shown side by side, so no module is hidden and no timer is throttled. When the rack layout (U-21/U-23) can hide a module, hidden frames will be kept mounted (not `display: none` on a page that must keep working) and the timer test below is the regression guard. Browsers may throttle timers in hidden frames; that is not yet measured.
+Since the rack layout (U-21/U-23), only the front module is visible; the others stay mounted at full size with `visibility: hidden` (never `display: none`, which a page that must keep working should not get), and the timer test below is the regression guard (it passes with the rack). Browsers may throttle timers in hidden frames; WebKit did not here, but Windows (WebView2) is not yet measured.
 
 ## Evidence (`npm run test:native`, macOS 26.5.1 arm64)
 
