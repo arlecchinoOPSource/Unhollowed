@@ -235,3 +235,57 @@ export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | n
   if (EXPECTED.every(module => frames.has(module)) && !running) running = runAll();
   await running;
 }
+
+/**
+ * U-14 scenario (docs/DATA-SAFETY-U14.md). The host was started on existing data with a debug-only override that makes
+ * every file look one version old, so no module is open yet. This drives the real page: declining leaves a module closed and
+ * untouched, confirming through the dialog (or the command) makes the verified copy and opens it, and a confirmed module works.
+ */
+export async function runMigrationScenario(): Promise<void> {
+  const report: Record<string, unknown> = {};
+  const status = async (module: string) => (await invoke<{ state: string }>('host_module_status', { module })).state;
+  const button = (label: string) => [...document.querySelectorAll('button')].find(b => b.textContent?.trim() === label);
+  const dialog = () => document.querySelector('[role="alertdialog"]');
+  const frame = (title: string) => document.querySelector(`iframe[title="${title}"]`);
+  const refused = (command: string) => invoke(command).then(() => false, () => true);
+  try {
+    report.start_states = [await status('terminal'), await status('ember'), await status('swish')];
+    report.no_frames_at_start = document.querySelectorAll('iframe').length === 0;
+    report.commands_absent_before = await Promise.all(['plugin:swish|load_workspace', 'plugin:terminal|journal_list', 'plugin:ember|habits_list'].map(refused));
+
+    // Terminal: ask, read the dialog, decline.
+    (await until('Terminal power-on button', () => button('Terminal: power on'))).click();
+    const asked = await until('the upgrade dialog', dialog);
+    const text = asked.textContent ?? '';
+    report.dialog_explains = /Terminal/.test(text) && /schema 1/.test(text) && /schema 2/.test(text) && /verified copy/.test(text) && /refuse/.test(text);
+    (await until('Not now', () => button('Not now'))).click();
+    await until('the dialog to close', () => !dialog());
+    report.declined_stays_closed = (await status('terminal')) === 'needsConfirmation' && !frame('Terminal') && await refused('plugin:terminal|journal_list');
+
+    // A confirm whose verified copy cannot be made (the runner made Terminal's backup location unusable): an honest error,
+    // nothing opened, nothing changed, and it is still waiting.
+    report.failed_copy_refused = await invoke('host_confirm_migration', { module: 'terminal' }).then(() => false, error => /safety copy could not be made/.test(String(error)) && /Nothing was changed/.test(String(error)));
+    report.still_closed_after_failed_copy = (await status('terminal')) === 'needsConfirmation' && await refused('plugin:terminal|journal_list') && !frame('Terminal');
+
+    // Ember: confirm in the real dialog; it makes the copy, opens, and powers on.
+    (await until('Ember power-on button', () => button('Ember: power on'))).click();
+    await until('the upgrade dialog', dialog);
+    (await until('Back up and upgrade', () => button('Back up and upgrade'))).click();
+    await until('the Ember frame', () => frame('Ember'), 20000);
+    report.ember_ready = (await status('ember')) === 'ready' && !(await refused('plugin:ember|habits_list'));
+
+    // Swish: confirm through the command; its commands exist afterwards.
+    await invoke('host_confirm_migration', { module: 'swish' });
+    report.swish_ready = (await status('swish')) === 'ready' && !(await refused('plugin:swish|load_workspace'));
+
+    // Nothing waiting, nothing to confirm; and only the confirmed modules produced a notice.
+    report.repeat_confirm_refused = await invoke('host_confirm_migration', { module: 'ember' }).then(() => false, () => true);
+    report.notices_for = (await invoke<{ module: string }[]>('host_data_notices')).map(n => n.module).sort();
+    report.ok = true;
+  } catch (error) {
+    report.ok = false;
+    report.error = String(error);
+  }
+  await invoke('selftest_report', { name: 'migration', data: report });
+  await invoke('selftest_finish');
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-host-module-status"
+description = "Enables the host_module_status command without any pre-configured scope."
+commands.allow = ["host_module_status"]
+
+[[permission]]
+identifier = "deny-host-module-status"
+description = "Denies the host_module_status command without any pre-configured scope."
+commands.deny = ["host_module_status"]

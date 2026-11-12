@@ -7,7 +7,6 @@
 
 use std::path::PathBuf;
 
-use swish_data::ApiError;
 use swish_lib::backup_commands::{self, LastSafetyCopy, PendingRestore};
 use swish_lib::commands::{self, Storage};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -58,22 +57,8 @@ pub fn init(data_dir: PathBuf) -> TauriPlugin<tauri::Wry> {
             finish_exit
         ])
         .setup(move |app, _api| {
-            let storage = match unhlw_data_safety::prepare(
-                INFO.name,
-                &data_dir.join(INFO.database_file),
-                &data_dir.join("backups"),
-                unhlw_data_safety::effective_version(INFO.schema_version),
-            ) {
-                unhlw_data_safety::Prepared::Refused(reason) => Storage::unavailable(ApiError {
-                    // Swish's own code for "storage cannot be used", with the reason the host refused (its own
-                    // message for this code would only say the file could not be reached).
-                    code: "storage",
-                    field: None,
-                    message: reason,
-                }),
-                _ => Storage::open(data_dir.clone()),
-            };
-            app.manage(storage);
+            // The host registers this plugin only once opening the file is allowed (docs/DATA-SAFETY-U14.md).
+            app.manage(Storage::open(data_dir.clone()));
             app.manage(PendingRestore::default());
             app.manage(LastSafetyCopy::default());
             Ok(())

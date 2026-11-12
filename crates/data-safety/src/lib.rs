@@ -2,11 +2,12 @@
 //!
 //! Decision 6 of docs/DATA-DECISIONS-U33.md: before any module migrates a real file, the host takes a verified copy
 //! (a SQLite online backup, which includes data still in the write-ahead log) into the module's `backups/` folder; if
-//! the copy cannot be made, the migration does not run. The host never migrates, rewrites or deletes a module's file
+//! the copy cannot be made, the migration does not run. The person confirms first (the host page asks); [`inspect`] says
+//! whether a file needs that question, [`backup_for_upgrade`] is the step taken after the answer. The host never migrates, rewrites or deletes a module's file
 //! itself, except in [`restore`], which replaces it only from a verified backup after saving a safety copy.
 //!
-//! No module has a schema above version 1 today, so [`prepare`] does nothing on real files yet; the engine is tested
-//! here so it is ready the first time a module's schema moves.
+//! No module has a schema above version 1 today, so nothing asks on real files yet; the engine is tested
+//! here so it is ready the first time a module's schema moves. [`inspect`] decides whether to ask.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -244,44 +245,25 @@ fn notify(module: &str, message: String) {
     }
 }
 
-/// What to do about a module's file before the module opens it.
-#[derive(Debug, PartialEq, Eq)]
-pub enum Prepared {
-    /// Nothing to protect: open the module normally.
-    Proceed,
-    /// The file will be migrated by opening it, and a verified copy was made first. Open normally.
-    BackedUp(Backup),
-    /// Do NOT open the file: show this reason instead. Nothing was changed.
-    Refused(String),
-}
-
-/// Call before a module opens its database. If opening would migrate an existing file, a verified copy is made
-/// first; if that fails the answer is [`Prepared::Refused`] and the file is untouched.
-pub fn prepare(module: &str, db: &Path, backups: &Path, supported: i64) -> Prepared {
-    match inspect(db, supported) {
-        Inspection::Missing
-        | Inspection::Fresh
-        | Inspection::Current
-        | Inspection::TooNew { .. }
-        | Inspection::Unreadable(_) => Prepared::Proceed,
-        Inspection::NeedsMigration { from, to } => {
-            match backup_verified(db, backups, &format!("migrate-v{from}-to-v{to}")) {
-                Ok(copy) => {
-                    notify(
-                        module,
-                        format!(
-                            "{module}'s data was upgraded from schema {from} to {to}. A verified copy made first is at {}. Older standalone releases of {module} will refuse the upgraded file; restoring that copy is the only way back.",
-                            copy.path.display()
-                        ),
-                    );
-                    Prepared::BackedUp(copy)
-                }
-                Err(error) => Prepared::Refused(format!(
-                    "{module} was not upgraded because a safety copy could not be made first ({error}). Nothing was changed; your data is as it was."
-                )),
-            }
-        }
-    }
+/// The verified copy the host takes after the person confirmed that a module's older file may be upgraded. It records the
+/// notice the page shows afterwards. If the copy cannot be made, the error says so and **the file is untouched**: the
+/// caller must not open the module.
+pub fn backup_for_upgrade(
+    module: &str,
+    db: &Path,
+    backups: &Path,
+    from: i64,
+    to: i64,
+) -> Result<Backup, String> {
+    let copy = backup_verified(db, backups, &format!("migrate-v{from}-to-v{to}"))?;
+    notify(
+        module,
+        format!(
+            "{module}'s data was upgraded from schema {from} to {to}. A verified copy made first is at {}. Older standalone releases of {module} will refuse the upgraded file; restoring that copy is the only way back.",
+            copy.path.display()
+        ),
+    );
+    Ok(copy)
 }
 
 /// What a restore did.

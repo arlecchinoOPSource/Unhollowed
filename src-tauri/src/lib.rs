@@ -1,3 +1,4 @@
+mod activation;
 mod lifecycle;
 mod modules;
 mod selftest;
@@ -11,6 +12,7 @@ pub fn run() {
         // Terminal's file dialogs (backup, export) use this plugin from Rust; no page may call it.
         .plugin(tauri_plugin_dialog::init())
         .manage(lifecycle::Lifecycle::default())
+        .manage(activation::Activation::default())
         .on_window_event(|window, event| {
             // The host owns close: hold it while modules save (docs/HOST-CONTRACT-U35.md).
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -23,7 +25,10 @@ pub fn run() {
             lifecycle::host_module_deactivated,
             lifecycle::host_power_off,
             lifecycle::host_data_notices,
+            activation::host_module_status,
+            activation::host_confirm_migration,
             selftest::selftest_enabled,
+            selftest::selftest_scenario,
             selftest::selftest_report,
             selftest::selftest_resize,
             selftest::selftest_finish
@@ -32,28 +37,15 @@ pub fn run() {
             let host_dir = app.path().app_data_dir()?;
             // Debug builds only: a throwaway data root so tests never touch real data.
             let override_root = std::env::var_os("UNHLW_DATA_ROOT").map(PathBuf::from);
-            let swish_dir = modules::module_data_dir(
-                &host_dir,
-                tauri_plugin_swish::INFO.identifier,
-                override_root.as_deref(),
-                cfg!(debug_assertions),
-            );
-            app.handle().plugin(tauri_plugin_swish::init(swish_dir))?;
-            let terminal_dir = modules::module_data_dir(
-                &host_dir,
-                tauri_plugin_terminal::INFO.identifier,
-                override_root.as_deref(),
-                cfg!(debug_assertions),
-            );
-            app.handle()
-                .plugin(tauri_plugin_terminal::init(terminal_dir))?;
-            let ember_dir = modules::module_data_dir(
-                &host_dir,
-                tauri_plugin_ember::INFO.identifier,
-                override_root.as_deref(),
-                cfg!(debug_assertions),
-            );
-            app.handle().plugin(tauri_plugin_ember::init(ember_dir))?;
+            for info in modules::MODULES {
+                let folder = modules::module_data_dir(
+                    &host_dir,
+                    info.identifier,
+                    override_root.as_deref(),
+                    cfg!(debug_assertions),
+                );
+                activation::start(app.handle(), info, folder)?;
+            }
             lifecycle::listen_for_flush(app.handle());
             Ok(())
         })
@@ -90,9 +82,14 @@ mod tests {
             .filter_map(|p| p.as_str())
             .collect();
         for command in APP_COMMANDS {
-            let handler_name = command
-                .replace("host_", "lifecycle::host_")
-                .replace("selftest_", "selftest::selftest_");
+            let handler_name =
+                if matches!(*command, "host_module_status" | "host_confirm_migration") {
+                    format!("activation::{command}")
+                } else {
+                    command
+                        .replace("host_", "lifecycle::host_")
+                        .replace("selftest_", "selftest::selftest_")
+                };
             let handled = source.contains(&format!("{handler_name},"))
                 || source.contains(&format!("{handler_name}\n"));
             assert!(handled, "{command} is not in generate_handler!");
