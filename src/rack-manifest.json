@@ -1,0 +1,768 @@
+{
+  "source": "UNHLW - Fable pass 01.blend",
+  "blender": "5.4.0 Alpha",
+  "engine": "CYCLES",
+  "samples": 96,
+  "frame": 40,
+  "coordinates": "world_rect is x0, x1, z0, z1 in Blender units; x right, z up",
+  "layers": [
+    {
+      "file": "rack-plate.png",
+      "px": [
+        2484,
+        3590
+      ],
+      "world_rect": [
+        -6.17,
+        6.25,
+        -9.38,
+        8.57
+      ],
+      "px_per_unit": 200
+    },
+    {
+      "file": "vu-needle.png",
+      "px": [
+        24,
+        144
+      ],
+      "world_rect": [
+        1.69,
+        1.81,
+        6.69,
+        7.41
+      ],
+      "px_per_unit": 200,
+      "blend": "normal (alpha-over)",
+      "pivot_in_layer_world": [
+        1.75,
+        6.46
+      ],
+      "note": "draw once per meter, offset by that meter's pivot; rotate about the pivot; clip to the meter's window_rect"
+    },
+    {
+      "file": "terminal-off.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        1.84,
+        6.44
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "state": "off",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "terminal-on.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        1.84,
+        6.44
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "state": "on",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "terminal-glow.png",
+      "world_rect": [
+        -5.3,
+        5.3,
+        1.84,
+        6.44
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "glow",
+      "px": [
+        2120,
+        920
+      ]
+    },
+    {
+      "file": "terminal-chase-1.png",
+      "world_rect": [
+        3.3,
+        3.5,
+        3.905,
+        4.105
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 8,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "terminal-chase-2.png",
+      "world_rect": [
+        3.5,
+        3.7,
+        3.905,
+        4.105
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 18,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "terminal-chase-3.png",
+      "world_rect": [
+        3.7,
+        3.9,
+        3.905,
+        4.105
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 28,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "terminal-key-i-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.04,
+        2.82,
+        3.42
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "terminal-key-i-hover.png",
+      "world_rect": [
+        2.22,
+        3.04,
+        2.82,
+        3.42
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "terminal-key-o-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        3.05,
+        3.87,
+        2.82,
+        3.42
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "terminal-key-o-hover.png",
+      "world_rect": [
+        3.05,
+        3.87,
+        2.82,
+        3.42
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "terminal-keys-disabled.png",
+      "px": [
+        330,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.87,
+        2.82,
+        3.42
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "state": "disabled",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "terminal-error.png",
+      "world_rect": [
+        -2.97,
+        -2.36,
+        5.295,
+        5.905
+      ],
+      "px_per_unit": 200,
+      "unit": "terminal",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "error",
+      "px": [
+        122,
+        122
+      ],
+      "note": "blink in the frontend, e.g. 2 Hz"
+    },
+    {
+      "file": "ember-off.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        -2.3,
+        2.3
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "state": "off",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "ember-on.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        -2.3,
+        2.3
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "state": "on",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "ember-glow.png",
+      "world_rect": [
+        -5.3,
+        5.3,
+        -2.3,
+        2.3
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "glow",
+      "px": [
+        2120,
+        920
+      ]
+    },
+    {
+      "file": "ember-chase-1.png",
+      "world_rect": [
+        3.3,
+        3.5,
+        -0.235,
+        -0.035
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 8,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "ember-chase-2.png",
+      "world_rect": [
+        3.5,
+        3.7,
+        -0.235,
+        -0.035
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 18,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "ember-chase-3.png",
+      "world_rect": [
+        3.7,
+        3.9,
+        -0.235,
+        -0.035
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 28,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "ember-key-i-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.04,
+        -1.32,
+        -0.72
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "ember-key-i-hover.png",
+      "world_rect": [
+        2.22,
+        3.04,
+        -1.32,
+        -0.72
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "ember-key-o-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        3.05,
+        3.87,
+        -1.32,
+        -0.72
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "ember-key-o-hover.png",
+      "world_rect": [
+        3.05,
+        3.87,
+        -1.32,
+        -0.72
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "ember-keys-disabled.png",
+      "px": [
+        330,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.87,
+        -1.32,
+        -0.72
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "state": "disabled",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "ember-error.png",
+      "world_rect": [
+        -3.395,
+        -2.785,
+        1.155,
+        1.765
+      ],
+      "px_per_unit": 200,
+      "unit": "ember",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "error",
+      "px": [
+        122,
+        122
+      ],
+      "note": "blink in the frontend, e.g. 2 Hz"
+    },
+    {
+      "file": "swish-off.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        -6.44,
+        -1.84
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "state": "off",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "swish-on.png",
+      "px": [
+        2120,
+        920
+      ],
+      "world_rect": [
+        -5.3,
+        5.3,
+        -6.44,
+        -1.84
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "state": "on",
+      "blend": "normal (alpha-over)"
+    },
+    {
+      "file": "swish-glow.png",
+      "world_rect": [
+        -5.3,
+        5.3,
+        -6.44,
+        -1.84
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "glow",
+      "px": [
+        2120,
+        920
+      ]
+    },
+    {
+      "file": "swish-chase-1.png",
+      "world_rect": [
+        3.3,
+        3.5,
+        -4.375,
+        -4.175
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 8,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "swish-chase-2.png",
+      "world_rect": [
+        3.5,
+        3.7,
+        -4.375,
+        -4.175
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 18,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "swish-chase-3.png",
+      "world_rect": [
+        3.7,
+        3.9,
+        -4.375,
+        -4.175
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "chase",
+      "px": [
+        40,
+        40
+      ],
+      "peak_frame": 28,
+      "period_frames": 30,
+      "fps": 24
+    },
+    {
+      "file": "swish-key-i-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.04,
+        -5.46,
+        -4.86
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "swish-key-i-hover.png",
+      "world_rect": [
+        2.22,
+        3.04,
+        -5.46,
+        -4.86
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "swish-key-o-pressed.png",
+      "px": [
+        164,
+        120
+      ],
+      "world_rect": [
+        3.05,
+        3.87,
+        -5.46,
+        -4.86
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "state": "pressed",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "swish-key-o-hover.png",
+      "world_rect": [
+        3.05,
+        3.87,
+        -5.46,
+        -4.86
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "hover",
+      "px": [
+        164,
+        120
+      ]
+    },
+    {
+      "file": "swish-keys-disabled.png",
+      "px": [
+        330,
+        120
+      ],
+      "world_rect": [
+        2.22,
+        3.87,
+        -5.46,
+        -4.86
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "state": "disabled",
+      "blend": "normal (alpha-over); replaces this area of -off"
+    },
+    {
+      "file": "swish-error.png",
+      "world_rect": [
+        -3.41,
+        -2.8,
+        -2.985,
+        -2.375
+      ],
+      "px_per_unit": 200,
+      "unit": "swish",
+      "blend": "additive over -off (CSS mix-blend-mode: plus-lighter)",
+      "state": "error",
+      "px": [
+        122,
+        122
+      ],
+      "note": "blink in the frontend, e.g. 2 Hz"
+    }
+  ],
+  "meters": [
+    {
+      "pivot": [
+        1.75,
+        6.46
+      ],
+      "window_rect": [
+        1.0,
+        2.5,
+        6.78,
+        7.58
+      ],
+      "css_rotation_deg": {
+        "rest": 7,
+        "min": -29,
+        "max": 42
+      },
+      "note": "positive CSS rotation is clockwise; the Blender preview swings between min and max"
+    },
+    {
+      "pivot": [
+        3.75,
+        6.46
+      ],
+      "window_rect": [
+        3.0,
+        4.5,
+        6.78,
+        7.58
+      ],
+      "css_rotation_deg": {
+        "rest": 7,
+        "min": -29,
+        "max": 42
+      },
+      "note": "positive CSS rotation is clockwise; the Blender preview swings between min and max"
+    }
+  ],
+  "controls": {
+    "terminal": {
+      "key_i_rect": [
+        2.22,
+        3.04,
+        2.82,
+        3.42
+      ],
+      "key_o_rect": [
+        3.05,
+        3.87,
+        2.82,
+        3.42
+      ]
+    },
+    "ember": {
+      "key_i_rect": [
+        2.22,
+        3.04,
+        -1.32,
+        -0.72
+      ],
+      "key_o_rect": [
+        3.05,
+        3.87,
+        -1.32,
+        -0.72
+      ]
+    },
+    "swish": {
+      "key_i_rect": [
+        2.22,
+        3.04,
+        -5.46,
+        -4.86
+      ],
+      "key_o_rect": [
+        3.05,
+        3.87,
+        -5.46,
+        -4.86
+      ]
+    }
+  }
+}

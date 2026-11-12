@@ -9,8 +9,8 @@ import { runSelfTest } from './selftest';
  * the native side when the module becomes active so a close request knows whom to wait for (docs/LIFECYCLE-U11.md).
  * The frame is never unmounted by navigation: only power-off removes it, so drafts and timers survive.
  */
-export function ModuleFrame({ name, title, front, leaving, onFront }: {
-  name: ModuleName; title: string; front: boolean; leaving: boolean; onFront: (name: ModuleName) => void;
+export function ModuleFrame({ name, title, front, leaving, onFront, onReady }: {
+  name: ModuleName; title: string; front: boolean; leaving: boolean; onFront: (name: ModuleName) => void; onReady: (name: ModuleName) => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -21,6 +21,7 @@ export function ModuleFrame({ name, title, front, leaving, onFront }: {
   useEffect(() => { if (front) frame.current?.contentWindow?.focus(); }, [front]);
   function loaded() {
     const win = frame.current?.contentWindow;
+    onReady(name); // the frame loaded: its projector goes from booting to active
     // Using a module (a click, or Tab moving into its frame) brings it to the front.
     win?.addEventListener('pointerdown', () => onFront(name), true);
     win?.addEventListener('focus', () => onFront(name));

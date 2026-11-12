@@ -224,7 +224,19 @@ async function runAll(): Promise<void> {
   const widths = [...document.querySelectorAll('iframe')].map(f => f.contentWindow?.innerWidth ?? null);
   const heights = [...document.querySelectorAll('iframe')].map(f => f.getBoundingClientRect().height);
   const stage = document.querySelector('.stage')!.getBoundingClientRect();
-  await invoke('selftest_report', { name: 'layout', data: { host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_bottom: stage.bottom } });
+  // The rack (docs/RACK-U21-U23.md): states shown, real named buttons, fitted inside the window, one module visible at a time.
+  const rackBox = document.querySelector('.rack')?.getBoundingClientRect();
+  const rackKeys = [...document.querySelectorAll('.rack button')] as HTMLButtonElement[];
+  const rack = {
+    states: [...document.querySelectorAll('.rack-unit')].map(u => (u as HTMLElement).dataset.state),
+    keys: rackKeys.length,
+    keys_named: rackKeys.every(b => (b.getAttribute('aria-label') ?? '').length > 3),
+    box: rackBox ? [rackBox.left, rackBox.top, rackBox.right, rackBox.bottom, rackBox.width / rackBox.height] : null,
+    fits_window: !!rackBox && rackBox.top >= 0 && rackBox.bottom <= window.innerHeight + 1 && rackBox.right <= window.innerWidth,
+    visible_frames: [...document.querySelectorAll('.module-slot')].filter(slot => getComputedStyle(slot).visibility === 'visible').length,
+    images_loaded: [...document.querySelectorAll('.rack img')].every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0),
+  };
+  await invoke('selftest_report', { name: 'layout', data: { rack, front_frame_width: Math.max(...widths.map(w => w ?? 0)), host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_bottom: stage.bottom } });
   await invoke('selftest_finish');
 }
 

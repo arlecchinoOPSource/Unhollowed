@@ -7,8 +7,11 @@ import { runExternalScenario, runMigrationScenario, runRestoreScenario } from '.
 import { RestoreDialog } from './RestoreDialog';
 import { listen } from '@tauri-apps/api/event';
 import { isExternalChange } from './changes';
+import { Rack } from './Rack';
 
 const NAMES = MODULES.map(module => module.name);
+/** How long a frame may take to load before its projector shows an error. */
+const BOOT_TIMEOUT_MS = 20000;
 type PowerOff = { flushed: boolean; waitedMs: number; lingerMs: number };
 
 /** What the debug-only self-test and the module shim ask of the host (inert in normal use). */
@@ -79,7 +82,7 @@ export function App() {
 
   /** Asks the module to save; removes its frame only once it confirms. Returns null when it was not on. */
   const powerOff = useCallback(async (name: ModuleName): Promise<PowerOff | null> => {
-    if (rackRef.current.phase[name] !== 'on') return null;
+    if (rackRef.current.phase[name] !== 'on' && rackRef.current.phase[name] !== 'error') return null; // 'error' is the retry
     update(r => rackModel.beginPowerOff(r, name));
     setUnsaved(current => { const { [name]: _gone, ...rest } = current; return rest; });
     let result: PowerOff;
@@ -90,6 +93,7 @@ export function App() {
       setUnsaved(current => ({ ...current, [name]: String(error) }));
     }
     if (!result.flushed) {
+      update(r => rackModel.fail(r, name)); // error: still mounted, nothing lost; the owner decides below
       setUnsaved(current => ({ ...current, [name]: current[name] ?? 'It did not confirm that it saved.' }));
       return result;
     }
@@ -113,6 +117,15 @@ export function App() {
   }, [powerOn, bringToFront, powerOff]);
   // Debug-only native self-test: press the power switches ourselves (inert in release builds).
   useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else if (scenario === 'external') void runExternalScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
+
+  const ready = useCallback((name: ModuleName) => update(r => rackModel.markReady(r, name)), [update]);
+  // A module whose frame never reports that it loaded is an error (the owner can keep waiting, retry or power it off).
+  useEffect(() => {
+    const timers = NAMES.filter(name => rack.phase[name] === 'on' && !rack.ready[name]).map(name => setTimeout(() => update(r => r.phase[name] === 'on' && !r.ready[name] ? rackModel.fail(r, name) : r), BOOT_TIMEOUT_MS));
+    return () => timers.forEach(clearTimeout);
+  }, [rack, update]);
+  const projectorStates = Object.fromEntries(NAMES.map(name => [name, rackModel.projectorState(rack, name)])) as Record<ModuleName, rackModel.ProjectorState>;
+  const keepOpen = useCallback((name: ModuleName) => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name)); }, [update]);
 
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
@@ -155,10 +168,13 @@ export function App() {
       <button type="button" className="power" onClick={() => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.finishPowerOff(r, name as ModuleName)); }}>Power off anyway (unsaved changes are lost)</button>
     </div>)}
     </div>
-    <section className="stage" aria-label="Active modules" style={{ gridTemplateColumns: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))` }}>
-      {shown.length
-        ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={rack.front === module.name} leaving={leaving.includes(module.name)} onFront={bringToFront} />)
-        : <p className="idle">All projectors are off.</p>}
-    </section>
+    <div className="workspace">
+      <Rack units={MODULES} states={projectorStates} actions={{ powerOn: wantOn, front: bringToFront, powerOff: name => void powerOff(name), keepOpen }} />
+      <section className="stage" aria-label="Active modules">
+        {shown.length
+          ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={rack.front === module.name || (rack.front === null && rack.phase[module.name] === 'error')} leaving={leaving.includes(module.name)} onFront={bringToFront} onReady={ready} />)
+          : <p className="idle">All projectors are off.</p>}
+      </section>
+    </div>
   </main>;
 }
