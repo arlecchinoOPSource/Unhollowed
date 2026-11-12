@@ -92,3 +92,15 @@ html, body, #root { height: 100%; margin: 0; }
 .restore-link { position: absolute; top: 2px; right: calc(1.5 * var(--holo-m)); z-index: 6; font: inherit; font-size: .72rem; line-height: 1; padding: 2px 8px; border: 1px solid #3a4448; border-radius: 3px; background: #101315; color: #8b979c; cursor: pointer; }
 .restore-link:hover { color: #d8dcdd; border-color: #5d6a70; }
 .restore-link:focus-visible { outline: 2px solid #9ad1ff; outline-offset: 2px; }
+
+/* U-26: the rack sound control sits beside Restore data, in the margin above the interface. */
+.sound-link { right: calc(1.5 * var(--holo-m) + 7.2rem); }
+.sound-dialog label { display: inline-flex; align-items: center; gap: 8px; }
+.sound-dialog fieldset { border: 1px solid #2a3033; border-radius: 4px; padding: 6px 10px; display: grid; gap: 4px; min-width: min(26rem, 90%); }
+.sound-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* The Sound and Restore dialogs float over the workspace instead of pushing it down (a banner would shrink the rack). */
+.sheet { position: fixed; top: 12px; right: 12px; z-index: 20; width: min(30rem, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 14px 16px; background: #161b1d; border: 1px solid #5d6a70; border-radius: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, .6); }
+.sheet h2 { margin: 0; font-size: 1rem; }
+.sheet p { margin: 0; max-width: 70ch; }
