@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -57,6 +57,28 @@ if (code === 0) {
   }
   safety.terminal.file_untouched = sha(terminalFile) === terminalBefore;
 }
+
+// Phase 3: a restore scheduled before start is applied before the module opens. Put a marker table into Ember's file, schedule
+// its upgrade copy, start the host, and expect the marker gone (data restored), the replaced file kept in a safety copy, a notice,
+// and the schedule consumed.
+let restored = {};
+if (code === 0 && safety.exit_code === 0 && backupsOf('ember').length === 1) {
+  const [emberFolder, emberFile] = modules.ember;
+  const db = join(dataRoot, emberFolder, emberFile);
+  const conn = new DatabaseSync(db); conn.exec('PRAGMA journal_mode=DELETE; CREATE TABLE zz_marker(x)'); conn.close();
+  writeFileSync(join(dataRoot, emberFolder, 'restore-pending'), basename(backupsOf('ember')[0]));
+  const out3 = join(dir, 'results-restore.json');
+  const third = spawn(bin, [], { env: { ...process.env, UNHLW_DATA_ROOT: dataRoot, UNHLW_SELFTEST_OUT: out3, UNHLW_SELFTEST_SCENARIO: 'restore' }, stdio: 'inherit' });
+  const timer3 = setTimeout(() => { console.error('Restore phase timed out after 90 s'); third.kill(); }, 90000);
+  restored.exit_code = await new Promise(done => third.on('exit', done));
+  clearTimeout(timer3);
+  restored.report = existsSync(out3) ? (JSON.parse(readFileSync(out3, 'utf8')).restore ?? {}) : {};
+  const tables = path => { const c = new DatabaseSync(path, { readOnly: true }); try { return c.prepare("SELECT name FROM sqlite_master WHERE name='zz_marker'").all().length; } finally { c.close(); } };
+  restored.marker_gone = tables(db) === 0;
+  const kept = readdirSync(join(dataRoot, emberFolder, 'backups')).filter(f => f.startsWith('before-restore-'));
+  restored.safety_has_marker = kept.length === 1 && tables(join(dataRoot, emberFolder, 'backups', kept[0])) === 1;
+  restored.schedule_consumed = !existsSync(join(dataRoot, emberFolder, 'restore-pending'));
+}
 const verified = name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; };
 const drop = new Set();
 
@@ -71,6 +93,7 @@ const results = existsSync(outFile) ? JSON.parse(readFileSync(outFile, 'utf8')) 
 rmSync(dir, { recursive: true, force: true });
 results.data_safety = safety;
 results.migration = migration;
+results.restored = restored;
 results.group_or_world_accessible = exposed.map(p => p.replace(dataRoot, '<root>'));
 console.log(JSON.stringify(results, null, 2));
 
@@ -112,6 +135,8 @@ const checks = {
   'U-14: with older files, no module opened or changed anything at start, and the dialog explained the upgrade': migration.start_states?.every(state => state === 'needsConfirmation') === true && migration.no_frames_at_start === true && migration.commands_absent_before?.every(Boolean) === true && migration.dialog_explains === true,
   'U-14: declining, and a confirm whose safety copy could not be made, both left that module closed, with an honest error and its file untouched': migration.declined_stays_closed === true && migration.failed_copy_refused === true && migration.still_closed_after_failed_copy === true && safety.terminal?.copies === 0 && safety.terminal?.file_untouched === true,
   'U-14: confirming made one verified copy first and opened the module (dialog for Ember, command for Swish); originals intact': migration.ember_ready === true && migration.swish_ready === true && verified('ember') && verified('swish'),
+  'U-14: backups are listed, bad names refused, a restore can be scheduled and cancelled': migration.backup_listed === true && migration.restore_bad_names_refused === true && migration.restore_schedule_roundtrip === true,
+  'U-14: a restore scheduled before start replaced the data before the module opened, kept what it replaced, told the person and was consumed once': restored.exit_code === 0 && restored.marker_gone === true && restored.safety_has_marker === true && restored.schedule_consumed === true && restored.report?.ok === true && restored.report?.ember_opens === true && restored.report?.pending === null && restored.report?.notices?.some(n => /ember: .*was restored/.test(n)) === true,
   'U-14: a second confirm is refused, and only confirmed modules produced a notice': migration.repeat_confirm_refused === true && JSON.stringify(migration.notices_for) === JSON.stringify(['ember', 'swish']) && migration.ok === true && safety.exit_code === 0,
   'data folders and files are owner-only (no group or world access)': exposed.length === 0,
   'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,

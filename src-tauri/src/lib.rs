@@ -27,6 +27,9 @@ pub fn run() {
             lifecycle::host_data_notices,
             activation::host_module_status,
             activation::host_confirm_migration,
+            activation::host_list_backups,
+            activation::host_schedule_restore,
+            activation::host_cancel_restore,
             selftest::selftest_enabled,
             selftest::selftest_scenario,
             selftest::selftest_report,
@@ -82,14 +85,20 @@ mod tests {
             .filter_map(|p| p.as_str())
             .collect();
         for command in APP_COMMANDS {
-            let handler_name =
-                if matches!(*command, "host_module_status" | "host_confirm_migration") {
-                    format!("activation::{command}")
-                } else {
-                    command
-                        .replace("host_", "lifecycle::host_")
-                        .replace("selftest_", "selftest::selftest_")
-                };
+            let handler_name = if matches!(
+                *command,
+                "host_module_status"
+                    | "host_confirm_migration"
+                    | "host_list_backups"
+                    | "host_schedule_restore"
+                    | "host_cancel_restore"
+            ) {
+                format!("activation::{command}")
+            } else {
+                command
+                    .replace("host_", "lifecycle::host_")
+                    .replace("selftest_", "selftest::selftest_")
+            };
             let handled = source.contains(&format!("{handler_name},"))
                 || source.contains(&format!("{handler_name}\n"));
             assert!(handled, "{command} is not in generate_handler!");
