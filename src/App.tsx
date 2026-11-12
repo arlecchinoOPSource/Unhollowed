@@ -3,7 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { ModuleFrame } from './ModuleFrame';
 import { MODULES, type ModuleName } from './modules';
 import * as rackModel from './lifecycle';
-import { runMigrationScenario } from './selftest';
+import { runMigrationScenario, runRestoreScenario } from './selftest';
+import { RestoreDialog } from './RestoreDialog';
 
 const NAMES = MODULES.map(module => module.name);
 type PowerOff = { flushed: boolean; waitedMs: number; lingerMs: number };
@@ -36,6 +37,7 @@ export function App() {
   // A module whose data is older than it writes is not opened until the person confirms (docs/DATA-SAFETY-U14.md).
   const [waiting, setWaiting] = useState<Record<string, { from: number; to: number }>>({});
   const [asking, setAsking] = useState<ModuleName | null>(null);
+  const [restoring, setRestoring] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeError, setUpgradeError] = useState('');
   useEffect(() => {
@@ -88,7 +90,7 @@ export function App() {
     return () => { delete window.__unhlwHost; };
   }, [powerOn, bringToFront, powerOff]);
   // Debug-only native self-test: press the power switches ourselves (inert in release builds).
-  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; if ((await invoke<string | null>('selftest_scenario')) === 'migration') void runMigrationScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
+  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
 
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
@@ -108,6 +110,7 @@ export function App() {
               </>}
           </span>;
         })}
+        <button type="button" className="power" onClick={() => setRestoring(true)}>Restore data…</button>
       </nav>
       <p className="note">Foundation slice. Power a module off to save and close it; close the window to quit.</p>
     </header>
@@ -118,6 +121,7 @@ export function App() {
       <button type="button" className="power" autoFocus disabled={upgrading} onClick={() => setAsking(null)}>Not now</button>
       <button type="button" className="power" disabled={upgrading} onClick={() => void confirmUpgrade(asking)}>{upgrading ? 'Backing up…' : 'Back up and upgrade'}</button>
     </div>}
+    {restoring && <RestoreDialog modules={MODULES.map(({ name, title }) => ({ name, title }))} onClose={() => setRestoring(false)} />}
     {notices.map((notice, index) => <div key={index} role="status" className="notice"><strong>{notice.module}</strong> {notice.message}<button type="button" className="power" onClick={() => setNotices(current => current.filter((_, i) => i !== index))}>Dismiss</button></div>)}
     {Object.entries(unsaved).map(([name, reason]) => <div key={name} role="alert" className="unsaved">
       <strong>{MODULES.find(m => m.name === name)?.title} did not confirm that it saved.</strong> {reason}

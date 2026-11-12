@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-host-list-backups"
+description = "Enables the host_list_backups command without any pre-configured scope."
+commands.allow = ["host_list_backups"]
+
+[[permission]]
+identifier = "deny-host-list-backups"
+description = "Denies the host_list_backups command without any pre-configured scope."
+commands.deny = ["host_list_backups"]

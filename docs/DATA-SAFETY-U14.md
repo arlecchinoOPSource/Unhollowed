@@ -17,17 +17,24 @@ Issue: [U-14 (#14)](https://github.com/arlecchinoOPSource/Unhollowed/issues/14).
 - Three plugin tests (one per module) tie the declared schema version to the real module.
 - **Native, in the real host (macOS 26.5.1 arm64):** the host is started on the synthetic data it just created and told (debug builds only, `UNHLW_TEST_SCHEMA_VERSION=2`) that every module now writes schema 2, so every file looks one version old. A scripted scenario then drives the real page: at start all three modules wait, no frame is mounted and none of their commands exist; the dialog for Terminal names the module, both schemas, the verified copy and the refusal by older releases; *Not now* leaves Terminal closed; a confirm whose copy cannot be made (the runner made Terminal's backup location unusable) returns an honest error, opens nothing and changes nothing (Terminal's file is byte-identical afterwards, no copy exists); Ember is confirmed in the real dialog and Swish through the command, each getting exactly one verified copy first (integrity `ok`, schema 1, same row count as the original, originals intact) and then working; a repeated confirm is refused; and only the confirmed modules produced a notice.
 
+## Restore, retention and Terminal's entry version (added after the prompt)
+
+- **Restore UI ("Restore data…" in the host bar).** Choose a module and one of its verified copies (listed newest first, with kind, schema and size). A running module has its file open, so the choice only **schedules** the restore (`restore-pending` in the module's folder, owner-only); the person is told to quit and reopen. At the next start, **before any plugin opens the file**, the host checks the copy again, refuses one on a newer schema than the host supports, runs `restore` (which keeps what it replaces in a safety copy) and shows a notice with the outcome. The marker is removed whether it worked or not, so a failing restore is not retried at every start. A schedule can be cancelled. Backup names are plain file names inside `backups/`; paths and unknown names are refused.
+- **Retention.** Upgrade copies (`before-migrate-…`) are kept: each is the only way back to the older format and they are rare. Restore safety copies keep the newest 5. Leftover `.partial` files are removed. Pruning runs at every start and after a restore.
+- **Terminal's per-entry `schema_version` (audit F3).** A backup is only accepted if its entries' format range (min/max of `entries.schema_version`) equals the original's, so a copy is never taken to be interchangeable by `user_version` alone. The engine still cannot *migrate* the entry format: that belongs to Terminal, whose table currently forbids anything but 1, so a new entry format needs a table migration that already moves `user_version`.
+- **Dialog accessibility.** The restore dialog is `role="dialog"` with a title and description, a labelled select and radio group, Tab kept inside it, Escape closing it, and focus returned to the opener. This is structural only: **no screen reader (VoiceOver, NVDA) has been run**, and neither dialog is styled for the rack yet.
+- **Evidence.** `cargo test -p unhlw-data-safety`: 13 tests (new: retention, scheduled restore applied once at start, refused paths / newer / missing backups, per-entry versions). Native, macOS 26.5.1 arm64: 32/32 — the migration phase now also lists backups, refuses bad names and schedules and cancels a restore; a new third phase puts a marker table in Ember's file, schedules its upgrade copy, starts the host and finds the marker gone, the replaced file kept with the marker, a notice, Ember opening normally and the schedule consumed.
+
 ## What is not done
 
-- **No restore UI.** `restore` is an engine with tests; nothing in the host calls it. The recovery procedure today is manual: power the module off, then restore the chosen `backups/before-…` file with `restore`.
-- **Retention:** copies are never deleted, so repeated upgrades accumulate backups. No size limit or clean-up exists. A full disk makes the copy fail, which refuses the migration (safe, but the module stays unavailable until space is freed).
-- **Terminal's per-entry `schema_version`** (audit F3) is not understood by the engine; it checks the database version only.
-- **The dialog is minimal.** It is a placeholder like the rest of the host page: it is keyboard-operable (focus starts on *Not now*, Escape cancels, `role="alertdialog"`) but it has not been checked with a screen reader, and it is not styled as part of the rack (U-21/U-23).
+- **Restoring is not instant** by design (next start); there is no in-place restore of a running module.
+- **Retention has no size limit**, only the restore-copy count; upgrade copies accumulate with each real schema change.
+- **The dialogs are minimal** and not styled as part of the rack (U-21/U-23); the screen-reader check above is outstanding.
 - **The gate is the page, not the plugin.** A plugin is registered only after the file is allowed, so its commands truly do not exist before then; but a module's *frame* is kept off by the page. Only the host's own frames exist, so this is enough today.
 - **Debug seam:** `UNHLW_TEST_SCHEMA_VERSION` is read only in debug builds (like `UNHLW_DATA_ROOT`); a release build ignores it.
-- **Windows:** the new native phase and the engine run in CI on Windows but have not been run natively by the author; Roaming-profile behaviour of WAL files and `rename` over an open file are untested (U-27).
+- **Windows:** the native phases and the engine run in CI on Windows; Roaming-profile behaviour of WAL files and `rename` over a file are untested (U-27).
 - Migration atomicity itself belongs to each module (one transaction each, per the audit); the host does not verify it. Crash-during-migration and other failure injection are U-16.
-- Real user data is still blocked from host builds until the prompt, restore UI and U-15 are done.
+- Real user data is still blocked from host builds until U-15 is done.
 
 ## Rollback
 

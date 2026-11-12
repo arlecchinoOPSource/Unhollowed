@@ -168,7 +168,28 @@ fn verify(copy: &Path, original: &Path) -> Result<i64, String> {
     if tables(&b).map_err(fail)? != tables(&a).map_err(fail)? {
         return Err("the copy has different tables than the original".into());
     }
+    if entry_versions(&b) != entry_versions(&a) {
+        return Err("the copy has different per-entry formats than the original".into());
+    }
     Ok(version)
+}
+
+/// Terminal keeps a second version, one per journal entry (audit F3). A file whose entries are on a different format
+/// than another file is not interchangeable even if `user_version` matches, so copies must agree on it. `None` when the
+/// file has no such column (Ember, Swish).
+pub fn entry_versions(conn: &Connection) -> Option<(i64, i64)> {
+    conn.query_row(
+        "SELECT MIN(schema_version), MAX(schema_version) FROM entries",
+        [],
+        |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, Option<i64>>(1)?)),
+    )
+    .ok()
+    .and_then(|(min, max)| Some((min?, max?)))
+}
+
+/// The per-entry format range of a database file, for a host that must refuse entries it cannot read.
+pub fn entry_version_range(path: &Path) -> Option<(i64, i64)> {
+    entry_versions(&read_only(path).ok()?)
 }
 
 fn stamp() -> u128 {
@@ -266,6 +287,24 @@ pub fn backup_for_upgrade(
     Ok(copy)
 }
 
+/// A backup must open, pass SQLite's integrity check and be a versioned module database. Returns its schema version.
+fn check_backup(backup: &Path) -> Result<i64, String> {
+    let copy = read_only(backup).map_err(|e| format!("The backup cannot be read: {e}"))?;
+    let check: String = copy
+        .pragma_query_value(None, "integrity_check", |row| row.get(0))
+        .map_err(|e| format!("The backup cannot be checked: {e}"))?;
+    if check != "ok" {
+        return Err(format!(
+            "The backup failed SQLite's integrity check ({check}). Nothing was changed."
+        ));
+    }
+    let version = pragma(&copy, "user_version").map_err(|e| e.to_string())?;
+    if version <= 0 {
+        return Err("That file is not a versioned module database. Nothing was changed.".into());
+    }
+    Ok(version)
+}
+
 /// What a restore did.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Restored {
@@ -276,22 +315,7 @@ pub struct Restored {
 /// Replaces `db` with the contents of a backup, only after the backup itself checks out and a safety copy of the
 /// current file exists. **Nothing else may have the file open** (the module must be powered off).
 pub fn restore(backup: &Path, db: &Path) -> Result<Restored, String> {
-    {
-        let copy = read_only(backup).map_err(|e| format!("The backup cannot be read: {e}"))?;
-        let check: String = copy
-            .pragma_query_value(None, "integrity_check", |row| row.get(0))
-            .map_err(|e| format!("The backup cannot be checked: {e}"))?;
-        if check != "ok" {
-            return Err(format!(
-                "The backup failed SQLite's integrity check ({check}). Nothing was changed."
-            ));
-        }
-        if pragma(&copy, "user_version").map_err(|e| e.to_string())? <= 0 {
-            return Err(
-                "That file is not a versioned module database. Nothing was changed.".into(),
-            );
-        }
-    }
+    check_backup(backup)?;
     let folder = db.parent().ok_or("The data file has no folder.")?;
     let safety_copy = if db.exists() {
         Some(backup_verified(db, &folder.join("backups"), "restore").map_err(|e| format!("A safety copy of the current data could not be made ({e}). Nothing was changed."))?)
@@ -318,6 +342,168 @@ pub fn restore(backup: &Path, db: &Path) -> Result<Restored, String> {
     }
     std::fs::rename(&staging, db).map_err(|e| format!("The restored file could not be put in place ({e}). Your previous data is in the safety copy."))?;
     Ok(Restored { safety_copy })
+}
+
+/// How many safety copies taken by restores are kept. Upgrade copies are never pruned: each is the only way back to
+/// the older format and is rare.
+pub const KEEP_RESTORE_COPIES: usize = 5;
+
+/// One backup the person may choose to restore.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupInfo {
+    pub file: String,
+    pub user_version: i64,
+    pub bytes: u64,
+    pub modified_ms: u64,
+    /// `upgrade` (taken before a migration) or `restore` (what a restore replaced).
+    pub kind: String,
+}
+
+fn backup_files(dir: &Path) -> Vec<(PathBuf, String, std::time::SystemTime)> {
+    let Ok(read) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut files: Vec<_> = read
+        .flatten()
+        .filter_map(|entry| {
+            let name = entry.file_name().to_str()?.to_string();
+            if !(name.starts_with("before-") && name.ends_with(".sqlite3")) {
+                return None;
+            }
+            let modified = entry.metadata().ok()?.modified().ok()?;
+            Some((entry.path(), name, modified))
+        })
+        .collect();
+    files.sort_by(|a, b| b.2.cmp(&a.2).then(b.1.cmp(&a.1)));
+    files
+}
+
+/// The complete backups in `dir`, newest first. Half-written copies (`.partial`) are never listed.
+pub fn list_backups(dir: &Path) -> Vec<BackupInfo> {
+    backup_files(dir)
+        .into_iter()
+        .filter_map(|(path, name, modified)| {
+            let user_version = user_version(&path).ok()?;
+            Some(BackupInfo {
+                kind: if name.starts_with("before-restore-") {
+                    "restore"
+                } else {
+                    "upgrade"
+                }
+                .into(),
+                bytes: std::fs::metadata(&path).ok()?.len(),
+                modified_ms: modified.duration_since(UNIX_EPOCH).ok()?.as_millis() as u64,
+                file: name,
+                user_version,
+            })
+        })
+        .collect()
+}
+
+/// Retention: removes leftover `.partial` files (no backup runs while the host starts) and all but the newest
+/// `KEEP_RESTORE_COPIES` restore safety copies. Upgrade copies are kept. Returns how many files were removed.
+pub fn prune(dir: &Path) -> usize {
+    let mut removed = 0;
+    if let Ok(read) = std::fs::read_dir(dir) {
+        for entry in read.flatten() {
+            if entry.file_name().to_string_lossy().ends_with(".partial")
+                && std::fs::remove_file(entry.path()).is_ok()
+            {
+                removed += 1;
+            }
+        }
+    }
+    let old_restore_copies = backup_files(dir)
+        .into_iter()
+        .filter(|(_, name, _)| name.starts_with("before-restore-"))
+        .skip(KEEP_RESTORE_COPIES);
+    for (path, _, _) in old_restore_copies {
+        if std::fs::remove_file(path).is_ok() {
+            removed += 1;
+        }
+    }
+    removed
+}
+
+const PENDING: &str = "restore-pending";
+
+/// A backup file name must be a plain name inside `backups/`, never a path.
+fn backup_path(folder: &Path, file: &str) -> Result<PathBuf, String> {
+    let plain = Path::new(file).file_name().and_then(|n| n.to_str()) == Some(file);
+    if !plain || !file.starts_with("before-") || !file.ends_with(".sqlite3") {
+        return Err("That is not one of this module's backups.".into());
+    }
+    let path = folder.join("backups").join(file);
+    if path.is_file() {
+        Ok(path)
+    } else {
+        Err("That backup no longer exists.".into())
+    }
+}
+
+/// Records that the chosen backup is to replace the module's data **the next time Unhollowed starts**. A running module
+/// has its file open, so the replacement happens before any module opens it. The backup is checked now so the person
+/// hears about a bad one immediately, and refused if it is on a newer schema than this version supports.
+pub fn schedule_restore(folder: &Path, file: &str, supported: i64) -> Result<(), String> {
+    let path = backup_path(folder, file)?;
+    let version = check_backup(&path)?;
+    if version > supported {
+        return Err(format!(
+            "That backup is on schema {version}; this version of Unhollowed supports up to {supported}. Nothing was changed."
+        ));
+    }
+    std::fs::write(folder.join(PENDING), file)
+        .map_err(|e| format!("The restore could not be scheduled: {e}"))?;
+    let _ = private_file(&folder.join(PENDING));
+    Ok(())
+}
+
+/// The restore waiting for the next start, if any.
+pub fn pending_restore(folder: &Path) -> Option<String> {
+    std::fs::read_to_string(folder.join(PENDING))
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// Cancels a scheduled restore.
+pub fn cancel_restore(folder: &Path) {
+    let _ = std::fs::remove_file(folder.join(PENDING));
+}
+
+/// Called at start, **before** the module's plugin opens the file: carries out a scheduled restore and tells the person
+/// the outcome. The marker is removed either way so a failing restore is not retried on every start.
+pub fn apply_pending_restore(module: &str, db: &Path, supported: i64) {
+    let Some(folder) = db.parent() else { return };
+    let Some(file) = pending_restore(folder) else {
+        return;
+    };
+    cancel_restore(folder);
+    let outcome = backup_path(folder, &file).and_then(|path| {
+        let version = check_backup(&path)?;
+        if version > supported {
+            return Err(format!(
+                "it is on schema {version}, newer than this version supports"
+            ));
+        }
+        restore(&path, db)
+    });
+    notify(
+        module,
+        match outcome {
+            Ok(done) => format!(
+                "{module}'s data was restored from {file}.{}",
+                done.safety_copy
+                    .map(|c| format!(" What it replaced was kept at {}.", c.path.display()))
+                    .unwrap_or_default()
+            ),
+            Err(error) => {
+                format!("{module}'s data was not restored ({error}). Nothing was changed.")
+            }
+        },
+    );
+    prune(&folder.join("backups"));
 }
 
 #[cfg(test)]

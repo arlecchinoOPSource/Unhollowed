@@ -241,6 +241,19 @@ export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | n
  * every file look one version old, so no module is open yet. This drives the real page: declining leaves a module closed and
  * untouched, confirming through the dialog (or the command) makes the verified copy and opens it, and a confirmed module works.
  */
+/** Phase 3: the host was started with a restore scheduled; it must have been applied before Ember opened. */
+export async function runRestoreScenario(): Promise<void> {
+  const report: Record<string, unknown> = {};
+  try {
+    report.notices = (await invoke<{ module: string; message: string }[]>('host_data_notices')).map(n => `${n.module}: ${n.message}`);
+    report.pending = (await invoke<{ pending: string | null }>('host_list_backups', { module: 'ember' })).pending;
+    report.ember_opens = !(await invoke('plugin:ember|habits_list').then(() => false, () => true));
+    report.ok = true;
+  } catch (error) { report.ok = false; report.error = String(error); }
+  await invoke('selftest_report', { name: 'restore', data: report });
+  await invoke('selftest_finish');
+}
+
 export async function runMigrationScenario(): Promise<void> {
   const report: Record<string, unknown> = {};
   const status = async (module: string) => (await invoke<{ state: string }>('host_module_status', { module })).state;
@@ -277,6 +290,16 @@ export async function runMigrationScenario(): Promise<void> {
     // Swish: confirm through the command; its commands exist afterwards.
     await invoke('host_confirm_migration', { module: 'swish' });
     report.swish_ready = (await status('swish')) === 'ready' && !(await refused('plugin:swish|load_workspace'));
+
+    // Restore (docs/DATA-SAFETY-U14.md): the confirmed upgrade left one copy; it can be scheduled (nothing replaced now),
+    // paths and unknown files are refused, and a schedule can be cancelled.
+    const listed = await invoke<{ backups: { file: string; kind: string }[]; pending: string | null }>('host_list_backups', { module: 'ember' });
+    report.backup_listed = listed.backups.length === 1 && listed.backups[0].kind === 'upgrade' && listed.pending === null;
+    report.restore_bad_names_refused = (await Promise.all(['../ember.sqlite3', 'nope.sqlite3'].map(file => invoke('host_schedule_restore', { module: 'ember', file }).then(() => false, () => true)))).every(Boolean);
+    await invoke('host_schedule_restore', { module: 'ember', file: listed.backups[0].file });
+    const scheduled = (await invoke<{ pending: string | null }>('host_list_backups', { module: 'ember' })).pending;
+    await invoke('host_cancel_restore', { module: 'ember' });
+    report.restore_schedule_roundtrip = scheduled === listed.backups[0].file && (await invoke<{ pending: string | null }>('host_list_backups', { module: 'ember' })).pending === null;
 
     // Nothing waiting, nothing to confirm; and only the confirmed modules produced a notice.
     report.repeat_confirm_refused = await invoke('host_confirm_migration', { module: 'ember' }).then(() => false, () => true);

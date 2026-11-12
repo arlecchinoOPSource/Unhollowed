@@ -277,3 +277,122 @@ fn if_the_upgrade_backup_cannot_be_made_there_is_an_error_no_notice_and_the_file
     );
     assert_eq!(user_version(&db).unwrap(), 1);
 }
+
+fn touch_backup(dir: &Path, name: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    let db = Connection::open(dir.join(name)).unwrap();
+    db.execute_batch("CREATE TABLE notes (text TEXT); PRAGMA user_version = 1;")
+        .unwrap();
+}
+
+#[test]
+fn retention_keeps_every_upgrade_copy_and_only_the_newest_restore_copies() {
+    let dir = scratch("retention").join("backups");
+    touch_backup(&dir, "before-migrate-v1-to-v2-1.sqlite3");
+    for n in 0..8 {
+        touch_backup(&dir, &format!("before-restore-{n:03}.sqlite3"));
+        std::thread::sleep(Duration::from_millis(15));
+    }
+    std::fs::write(dir.join("before-restore-9.sqlite3.partial"), b"half").unwrap();
+    let removed = prune(&dir);
+    assert_eq!(removed, 3 + 1, "three old restore copies and the leftover");
+    let left: Vec<String> = list_backups(&dir).into_iter().map(|b| b.file).collect();
+    assert!(left.contains(&"before-migrate-v1-to-v2-1.sqlite3".to_string()));
+    assert_eq!(
+        left.iter()
+            .filter(|f| f.starts_with("before-restore-"))
+            .count(),
+        KEEP_RESTORE_COPIES
+    );
+    assert!(
+        left.contains(&"before-restore-007.sqlite3".to_string()),
+        "newest kept"
+    );
+    assert!(
+        !left.contains(&"before-restore-000.sqlite3".to_string()),
+        "oldest pruned"
+    );
+    assert!(!dir.join("before-restore-9.sqlite3.partial").exists());
+}
+
+#[test]
+fn a_scheduled_restore_waits_for_the_next_start_and_then_replaces_the_data() {
+    let dir = scratch("scheduled");
+    let db = dir.join("m.sqlite3");
+    let writer = make_db(&db, 1, &["kept"]);
+    let backup = backup_verified(&db, &dir.join("backups"), "migrate-v1-to-v2").unwrap();
+    writer
+        .execute("INSERT INTO notes (text) VALUES ('later')", [])
+        .unwrap();
+    drop(writer);
+    let file = backup
+        .path
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+    schedule_restore(&dir, &file, 1).unwrap();
+    assert_eq!(notes(&db), ["kept", "later"], "scheduling changes nothing");
+    assert_eq!(pending_restore(&dir), Some(file));
+    apply_pending_restore("m", &db, 1);
+    assert_eq!(notes(&db), ["kept"]);
+    assert_eq!(pending_restore(&dir), None, "done once");
+    assert!(
+        notices()
+            .iter()
+            .any(|n| n.module == "m" && n.message.contains("was restored"))
+    );
+}
+
+#[test]
+fn a_restore_is_refused_for_a_path_a_newer_backup_or_a_missing_file_and_changes_nothing() {
+    let dir = scratch("refused");
+    let db = dir.join("m.sqlite3");
+    drop(make_db(&db, 1, &["x"]));
+    let backups = dir.join("backups");
+    touch_backup(&backups, "before-migrate-v1-to-v2-1.sqlite3");
+    let new = Connection::open(backups.join("before-migrate-v2-to-v3-1.sqlite3")).unwrap();
+    new.execute_batch("CREATE TABLE notes (text TEXT); PRAGMA user_version = 3;")
+        .unwrap();
+    drop(new);
+    for bad in [
+        "../m.sqlite3",
+        "/etc/passwd",
+        "before-gone.sqlite3",
+        "notes.txt",
+    ] {
+        assert!(schedule_restore(&dir, bad, 2).is_err(), "{bad}");
+    }
+    assert!(
+        schedule_restore(&dir, "before-migrate-v2-to-v3-1.sqlite3", 2).is_err(),
+        "newer than supported"
+    );
+    assert_eq!(pending_restore(&dir), None);
+    // A marker that goes bad before the next start is reported, removed, and the data stays.
+    std::fs::write(dir.join("restore-pending"), "before-gone.sqlite3").unwrap();
+    apply_pending_restore("refused", &db, 1);
+    assert_eq!(notes(&db), ["x"]);
+    assert_eq!(pending_restore(&dir), None);
+    assert!(
+        notices()
+            .iter()
+            .any(|n| n.module == "refused" && n.message.contains("not restored"))
+    );
+}
+
+#[test]
+fn per_entry_versions_must_agree_between_a_file_and_its_copy() {
+    let dir = scratch("entries");
+    let db = dir.join("t.sqlite3");
+    let c = Connection::open(&db).unwrap();
+    c.execute_batch("CREATE TABLE entries (id TEXT, schema_version INTEGER NOT NULL); INSERT INTO entries VALUES ('a',1),('b',1); PRAGMA user_version = 1;").unwrap();
+    assert_eq!(entry_version_range(&db), Some((1, 1)));
+    let good = backup_verified(&db, &dir.join("backups"), "t").unwrap();
+    assert_eq!(entry_version_range(&good.path), Some((1, 1)));
+    let other = dir.join("other.sqlite3");
+    let o = Connection::open(&other).unwrap();
+    o.execute_batch("CREATE TABLE entries (id TEXT, schema_version INTEGER NOT NULL); INSERT INTO entries VALUES ('a',2); PRAGMA user_version = 1;").unwrap();
+    assert!(verify(&other, &db).unwrap_err().contains("per-entry"));
+    assert_eq!(entry_version_range(&dir.join("missing.sqlite3")), None);
+}

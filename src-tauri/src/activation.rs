@@ -12,7 +12,10 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
-use unhlw_data_safety::{Inspection, backup_for_upgrade, effective_version, inspect};
+use unhlw_data_safety::{
+    BackupInfo, Inspection, apply_pending_restore, backup_for_upgrade, effective_version, inspect,
+    list_backups, pending_restore, prune, schedule_restore,
+};
 use unhlw_host_contract::ModuleInfo;
 
 /// What the page needs to know about a module's data before powering it on.
@@ -61,6 +64,9 @@ pub fn start(app: &AppHandle, info: &ModuleInfo, folder: PathBuf) -> tauri::Resu
     let activation = tauri::Manager::state::<Activation>(app);
     let file = folder.join(info.database_file);
     let supported = effective_version(info.schema_version);
+    // A restore the person scheduled last time happens now, before anything has the file open; then old copies are pruned.
+    apply_pending_restore(info.name, &file, supported);
+    prune(&folder.join("backups"));
     let status = match needs_confirmation(&inspect(&file, supported)) {
         Some(status) => status,
         None => {
@@ -123,6 +129,51 @@ pub fn host_confirm_migration(
     })?;
     register(&app, info.name, folder).map_err(|error| error.to_string())?;
     statuses.insert(module, Status::Ready);
+    Ok(())
+}
+
+fn module_folder(state: &Activation, module: &str) -> Result<PathBuf, String> {
+    state
+        .folders
+        .lock()
+        .map_err(|_| "Activation unavailable.")?
+        .get(module)
+        .cloned()
+        .ok_or_else(|| "Unknown module.".into())
+}
+
+/// The module's backups (newest first) and the one waiting to be restored at the next start, if any.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Backups {
+    pub backups: Vec<BackupInfo>,
+    pub pending: Option<String>,
+}
+
+#[tauri::command]
+pub fn host_list_backups(state: State<'_, Activation>, module: String) -> Result<Backups, String> {
+    let folder = module_folder(&state, &module)?;
+    Ok(Backups {
+        backups: list_backups(&folder.join("backups")),
+        pending: pending_restore(&folder),
+    })
+}
+
+/// Schedules a restore for the next start (a running module has its file open). Nothing is replaced now.
+#[tauri::command]
+pub fn host_schedule_restore(
+    state: State<'_, Activation>,
+    module: String,
+    file: String,
+) -> Result<(), String> {
+    let info = crate::modules::find(&module).ok_or("Unknown module.")?;
+    let folder = module_folder(&state, &module)?;
+    schedule_restore(&folder, &file, effective_version(info.schema_version))
+}
+
+#[tauri::command]
+pub fn host_cancel_restore(state: State<'_, Activation>, module: String) -> Result<(), String> {
+    unhlw_data_safety::cancel_restore(&module_folder(&state, &module)?);
     Ok(())
 }
 
