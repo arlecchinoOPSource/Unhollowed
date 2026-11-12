@@ -8,7 +8,7 @@ Issues: [U-21 (#21)](https://github.com/arlecchinoOPSource/Unhollowed/issues/21)
 - **`src/lifecycle.ts`** gains the five projector states. `projectorState(rack, name)` derives what a projector shows from the phase and whether its frame has reported loading:
 
   `off → booting → active → shutting-down → off`; `booting → error`, `shutting-down → error`; `error → keep open → active` (or booting if it never loaded), `error → retry → shutting-down`, `error → power off anyway → off`. Out-of-order calls change nothing. `error` means *still mounted, nothing lost*: a frame that never loaded within 20 s, or a module that did not confirm its save. The owner decides, as before.
-- **Page wiring (`src/App.tsx`, `src/ModuleFrame.tsx`).** A frame reports loaded (booting → active); a failed or unconfirmed power-off now sets `error` instead of only showing the alert; the rack keys call the same handlers as the host bar (power on, bring to front, power off, keep open). The host bar's text buttons stay as a labelled fallback.
+- **Page wiring (`src/App.tsx`, `src/ModuleFrame.tsx`).** A frame reports loaded (booting → active); a failed or unconfirmed power-off now sets `error` instead of only showing the alert; the rack keys call the same handlers as the host bar (power on, bring to front, power off, keep open). (The host bar's text buttons were removed afterwards; see [HOLOGRAM-U24.md](HOLOGRAM-U24.md).)
 - **What each state looks like** (CSS, from the art's layers): *off* — plain unit, O key pressed; *booting* — glow flickers on for about a second; *active* — glow, chase LEDs running, needles moving; *shutting-down* — glow fades out over 0.9 s, keys show the disabled art and ignore clicks; *error* — status LED blinks red (2 Hz), the frame stays visible if nothing else is in front. `prefers-reduced-motion` turns the flicker, chase, blink and needle sway into static states.
 - **Layout.** The rack is as tall as the space under the host bar and keeps its aspect ratio (never wider than 45% of the window); the stage takes the rest. **One module is in front at full size; the others stay mounted at the same size, only invisible** (`visibility: hidden`, never `display: none`, so their timers and drafts keep running as [LIFECYCLE-U11.md](LIFECYCLE-U11.md) requires). Before this, three modules shared the stage side by side and were about 141 px wide at 800 px; now the front module is about 495 px wide.
 
@@ -28,7 +28,7 @@ Issues: [U-21 (#21)](https://github.com/arlecchinoOPSource/Unhollowed/issues/21)
 - **The shutting-down look was not seen in motion** (the stubbed host saved too fast; a real save takes longer). The model state and the CSS exist; the fade itself is unobserved.
 - The boot is a fixed flicker, not tied to real progress; the "booting" state lasts exactly until the frame loads.
 - Animated screens are single frames (the art exports one), so the displays do not animate; only needles, chase LEDs and the glow do.
-- U-24 (hologram) is built in [HOLOGRAM-U24.md](HOLOGRAM-U24.md). The rack keys and the host bar are two sets of controls; removing the host bar's is a design decision.
+- U-24 (hologram) is built in [HOLOGRAM-U24.md](HOLOGRAM-U24.md). 
 - Keyboard shortcuts for switching modules do not exist; with only one module visible, a hidden module is reached through the rack key or the host bar.
 - Layer images are decoded at startup (3.9 MB); no measurement of load time or memory yet.
 

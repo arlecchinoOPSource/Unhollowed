@@ -8,7 +8,7 @@ const states = (o = {}) => ({ terminal: 'off', ember: 'off', swish: 'off', ...o 
 const run = (proj, seconds, input, dt = 1 / 60) => { for (let t = 0; t < seconds; t += dt) proj.step(dt, input); };
 const near = (a, b, eps = 0.02) => assert.ok(Math.abs(a - b) <= eps, `${a} is not near ${b}`);
 
-test('booting reaches the hold point in 0.6 s and waits there until the frame has loaded', () => {
+test('booting reaches the hold point halfway through the boot time and waits there until the frame has loaded', () => {
   const proj = new h.Projection(names);
   const booting = { states: states({ ember: 'booting' }), owner: 'ember', rm: false };
   run(proj, 3, booting);
@@ -17,11 +17,12 @@ test('booting reaches the hold point in 0.6 s and waits there until the frame ha
   near(proj.p.ember, 1, 1e-9);
 });
 
-test('a normal boot takes about 1.2 s end to end when the frame loads in time', () => {
+test('a normal boot takes about BOOT_S end to end when the frame loads in time', () => {
   const proj = new h.Projection(names);
-  run(proj, 0.3, { states: states({ ember: 'booting' }), owner: 'ember', rm: false });
-  run(proj, 0.9, { states: states({ ember: 'active' }), owner: 'ember', rm: false });
+  run(proj, h.BOOT_S * 0.25, { states: states({ ember: 'booting' }), owner: 'ember', rm: false });
+  run(proj, h.BOOT_S * 0.75 + 0.02, { states: states({ ember: 'active' }), owner: 'ember', rm: false });
   near(proj.p.ember, 1, 0.03);
+  assert.ok(h.BOOT_S <= 0.8, 'a prompt boot');
 });
 
 test('while the module saves the interface stays; only after the save is confirmed does it retract in 0.9 s', async () => {
@@ -124,8 +125,8 @@ test('the beam slices run from the emitter to the stage edge with the right heig
   assert.equal(h.beamSlices(E, T, 512, 128, 0, 96).length, 0);
 });
 
-test('the stage margin follows the window height within 14 to 30 px', () => {
-  assert.equal(h.stageMargin(300), 14); assert.equal(h.stageMargin(568), 20); assert.equal(h.stageMargin(2000), 30);
+test('the stage margin follows the window height within 12 to 24 px', () => {
+  assert.equal(h.stageMargin(300), 12); assert.equal(h.stageMargin(568), 16); assert.equal(h.stageMargin(2000), 24);
 });
 
 test('who owns the stage: the module in front, else the one saving or in error, so unsaved work is never hidden', () => {

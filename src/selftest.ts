@@ -271,7 +271,7 @@ export async function runExternalScenario(): Promise<void> {
   const button = (label: string) => [...document.querySelectorAll('button')].find(b => b.textContent?.trim() === label);
   const banner = () => document.querySelector('.notice.changed');
   try {
-    (await until('Swish power-on button', () => button('Swish: power on'))).click();
+    (await until('Swish power-on button', () => document.querySelector<HTMLButtonElement>('button[aria-label="Power on Swish"]'))).click();
     const first = await until('the Swish frame', () => document.querySelector('iframe[title="Swish"]'), 20000);
     await sleep(8000); // the runner starts writing only after this
     report.quiet_without_changes = !banner() && ((window as Window).__unhlwChangeLog ?? []).length === 0;
@@ -318,7 +318,7 @@ export async function runMigrationScenario(): Promise<void> {
     report.commands_absent_before = await Promise.all(['plugin:swish|load_workspace', 'plugin:terminal|journal_list', 'plugin:ember|habits_list'].map(refused));
 
     // Terminal: ask, read the dialog, decline.
-    (await until('Terminal power-on button', () => button('Terminal: power on'))).click();
+    (await until('Terminal power-on button', () => document.querySelector<HTMLButtonElement>('button[aria-label="Power on Terminal"]'))).click();
     const asked = await until('the upgrade dialog', dialog);
     const text = asked.textContent ?? '';
     report.dialog_explains = /Terminal/.test(text) && /schema 1/.test(text) && /schema 2/.test(text) && /verified copy/.test(text) && /refuse/.test(text);
@@ -332,7 +332,7 @@ export async function runMigrationScenario(): Promise<void> {
     report.still_closed_after_failed_copy = (await status('terminal')) === 'needsConfirmation' && await refused('plugin:terminal|journal_list') && !frame('Terminal');
 
     // Ember: confirm in the real dialog; it makes the copy, opens, and powers on.
-    (await until('Ember power-on button', () => button('Ember: power on'))).click();
+    (await until('Ember power-on button', () => document.querySelector<HTMLButtonElement>('button[aria-label="Power on Ember"]'))).click();
     await until('the upgrade dialog', dialog);
     (await until('Back up and upgrade', () => button('Back up and upgrade'))).click();
     await until('the Ember frame', () => frame('Ember'), 20000);

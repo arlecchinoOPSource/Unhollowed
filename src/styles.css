@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 .host { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
-.workspace { --holo-m: clamp(14px, 3.5vh, 30px); position: relative; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.workspace { --holo-m: clamp(12px, 2.8vh, 24px); position: relative; container-type: size; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .host-top { min-width: 0; }
 .host-bar { display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 1px solid #2a3033; flex-wrap: wrap; }
 .host-bar h1 { margin: 0; font-size: 1.1rem; letter-spacing: .12em; text-transform: uppercase; }
@@ -36,7 +36,8 @@ html, body, #root { height: 100%; margin: 0; }
 .idle { padding: 24px; color: #8b979c; }
 
 /* The rack (U-21/U-23, docs/RACK-U21-U23.md). Height-driven: the case keeps its aspect ratio and the stage takes the rest. */
-.rack { position: relative; aspect-ratio: var(--rack-aspect); height: min(100%, calc((100vw - 16px) * 0.45 / var(--rack-aspect))); margin: 0 8px; align-self: center; }
+.rack { position: relative; aspect-ratio: var(--rack-aspect); /* explicit, from the workspace (a container): the column takes the rack's real width, so the interface gets the rest */
+  height: min(100cqh, calc((100cqw - 16px) * 0.40 / var(--rack-aspect))); margin: 0 8px; align-self: center; }
 .rack img { display: block; position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
 .rack-unit, .rack-box, .rack-window, .rack-key, .rack-needle { position: absolute; }
 .rack-window { overflow: hidden; }
@@ -48,7 +49,7 @@ html, body, #root { height: 100%; margin: 0; }
 .rack .glow { opacity: 0; transition: opacity .9s ease-out; }
 .rack .pressed, .rack .hover, .rack .disabled-art, .rack .chase, .rack .error { opacity: 0; }
 .s-booting .glow, .s-active .glow, .s-error .glow { opacity: 1; }
-.s-booting .glow { animation: rack-ramp .6s ease-out 1 forwards; } /* a smooth ramp: the old flicker changed five times in 0.54 s (faster than 3 Hz) */
+.s-booting .glow { animation: rack-ramp .35s ease-out 1 forwards; } /* a smooth ramp: the old flicker changed five times in 0.54 s (faster than 3 Hz) */
 .s-active .chase { animation: rack-chase 1.25s linear infinite; }
 .s-active .chase.c2 { animation-delay: .4167s; }
 .s-active .chase.c3 { animation-delay: .8333s; }
@@ -85,3 +86,9 @@ html, body, #root { height: 100%; margin: 0; }
 .holo-sweep-box { position: absolute; overflow: hidden; }
 .holo-sweep-box .holo-tint { top: 0; height: 100%; }
 @keyframes holo-shimmer { 0%, 100% { opacity: .82 } 50% { opacity: 1 } }
+
+/* The host has no bar any more: the rack keys are the power controls. Restore sits in the margin above the interface. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.restore-link { position: absolute; top: 2px; right: calc(1.5 * var(--holo-m)); z-index: 6; font: inherit; font-size: .72rem; line-height: 1; padding: 2px 8px; border: 1px solid #3a4448; border-radius: 3px; background: #101315; color: #8b979c; cursor: pointer; }
+.restore-link:hover { color: #d8dcdd; border-color: #5d6a70; }
+.restore-link:focus-visible { outline: 2px solid #9ad1ff; outline-offset: 2px; }

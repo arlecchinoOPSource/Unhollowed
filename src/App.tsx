@@ -140,24 +140,7 @@ export function App() {
   const shown = MODULES.filter(module => mounted.includes(module.name));
   return <main className="host">
     <div className="host-top">
-    <header className="host-bar">
-      <h1>Unhollowed</h1>
-      <nav aria-label="Projectors">
-        {MODULES.map(({ name, title }) => {
-          const phase = rack.phase[name];
-          return <span key={name} className="slot-controls">
-            {phase === 'off'
-              ? <button type="button" className="power" aria-pressed="false" onClick={() => wantOn(name)}>{title}: power on</button>
-              : <>
-                <button type="button" className="power" aria-pressed="true" disabled={phase === 'closing'} onClick={() => void powerOff(name)}>{title}: {phase === 'closing' ? 'saving…' : 'power off'}</button>
-                {phase === 'on' && rack.front !== name && <button type="button" className="power" onClick={() => bringToFront(name)}>Bring {title} to front</button>}
-              </>}
-          </span>;
-        })}
-        <button type="button" className="power" onClick={() => setRestoring(true)}>Restore data…</button>
-      </nav>
-      <p className="note">Foundation slice. Power a module off to save and close it; close the window to quit.</p>
-    </header>
+    <h1 className="sr-only">Unhollowed</h1>
     {asking && waiting[asking] && <div role="alertdialog" aria-modal="true" aria-labelledby="upgrade-title" aria-describedby="upgrade-body" className="upgrade" onKeyDown={event => { if (event.key === 'Escape' && !upgrading) setAsking(null); }}>
       <h2 id="upgrade-title">Upgrade {MODULES.find(m => m.name === asking)?.title}'s data?</h2>
       <p id="upgrade-body">{MODULES.find(m => m.name === asking)?.title}'s data is on schema {waiting[asking].from}; this version of Unhollowed uses schema {waiting[asking].to}. Opening it will upgrade the file. A verified copy is made first, and if that copy cannot be made nothing is changed. Older standalone releases of {MODULES.find(m => m.name === asking)?.title} will refuse the upgraded file; restoring the copy is the only way back.</p>
@@ -178,6 +161,7 @@ export function App() {
     </div>)}
     </div>
     <div className="workspace">
+      <button type="button" className="restore-link" onClick={() => setRestoring(true)}>Restore data…</button>
       <Hologram projection={projection} units={NAMES} states={projectorStates} owner={owner} />
       <Rack units={MODULES} states={projectorStates} actions={{ powerOn: wantOn, front: bringToFront, powerOff: name => void powerOff(name), keepOpen }} />
       <section className="stage" aria-label="Active modules">
