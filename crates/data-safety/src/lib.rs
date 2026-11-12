@@ -507,4 +507,6 @@ pub fn apply_pending_restore(module: &str, db: &Path, supported: i64) {
 }
 
 #[cfg(test)]
+mod failure_tests;
+#[cfg(test)]
 mod tests;
