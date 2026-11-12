@@ -248,7 +248,21 @@ async function runAll(): Promise<void> {
     beam_pixels: beamPixels, margin_px: parseFloat(getComputedStyle(stageEl).paddingTop),
     interface_unclipped: [...document.querySelectorAll('.module-slot')].filter(slot => getComputedStyle(slot).visibility === 'visible').every(slot => { const c = getComputedStyle(slot).clipPath; return c === 'none' || /inset\(0(px)? 0(px|%)? 0(px|%)? 0(px|%)?\)/.test(c); }),
   };
-  await invoke('selftest_report', { name: 'layout', data: { holo, rack, front_frame_width: Math.max(...widths.map(w => w ?? 0)), host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_content_height: stage.height - parseFloat(getComputedStyle(stageEl).paddingTop) - parseFloat(getComputedStyle(stageEl).paddingBottom), stage_bottom: stage.bottom } });
+  // The rack sounds (docs/SOUND-U26.md): requested at the right moments, silent by default, safe when audio is locked, and the
+  // settings dialog works from the keyboard. Whether anything is audible is a listening check, not something a test can prove.
+  const hostSound = window.__unhlwHost?.sound;
+  const asked = hostSound ? [...new Set(hostSound.log.map(entry => entry.cue))].sort() : [];
+  const playedWhileOff = hostSound ? hostSound.log.filter(entry => entry.played).length : -1;
+  let attempt = 'none';
+  if (hostSound) { const before = hostSound.settings; hostSound.setSettings({ ...before, enabled: true }, false); try { hostSound.play('key-on'); attempt = hostSound.log.at(-1)?.reason ?? 'none'; } catch { attempt = 'threw'; } hostSound.setSettings(before, false); }
+  const soundButton = [...document.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Sound…') as HTMLButtonElement | undefined;
+  soundButton?.focus(); soundButton?.click(); await sleep(150);
+  const dialog = document.querySelector('[role="dialog"].sound-dialog');
+  const dialogFocus = (document.activeElement?.textContent ?? '').trim();
+  const dialogControls = dialog ? dialog.querySelectorAll('input[type="checkbox"], input[type="range"], button').length : 0;
+  dialog?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await sleep(150);
+  const soundUi = { dialog_opened: !!dialog, focus_starts_on_close: dialogFocus === 'Close', controls: dialogControls, escape_closes: !document.querySelector('[role="dialog"].sound-dialog'), focus_returned: document.activeElement === soundButton };
+  await invoke('selftest_report', { name: 'layout', data: { sound: { asked, played_while_off: playedWhileOff, attempt_when_enabled: attempt, ui: soundUi }, holo, rack, front_frame_width: Math.max(...widths.map(w => w ?? 0)), host_width: window.innerWidth, host_height: window.innerHeight, frame_widths_after_resize: widths, frame_heights_after_resize: heights, stage_height: stage.height, stage_content_height: stage.height - parseFloat(getComputedStyle(stageEl).paddingTop) - parseFloat(getComputedStyle(stageEl).paddingBottom), stage_bottom: stage.bottom } });
   await invoke('selftest_finish');
 }
 

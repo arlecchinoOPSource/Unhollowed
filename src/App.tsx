@@ -10,6 +10,9 @@ import { isExternalChange } from './changes';
 import { Rack } from './Rack';
 import { Hologram } from './Hologram';
 import { Projection } from './projection';
+import { createHostSound } from './hostSoundDefault';
+import { SoundDialog } from './SoundDialog';
+import { SOUND_KEY, transitionCues } from './sound';
 
 const NAMES = MODULES.map(module => module.name);
 /** How long a frame may take to load before its projector shows an error. */
@@ -18,7 +21,7 @@ type PowerOff = { flushed: boolean; waitedMs: number; lingerMs: number };
 
 /** What the debug-only self-test and the module shim ask of the host (inert in normal use). */
 declare global { interface Window { __unhlwActivity?: Record<string, number>; __unhlwChangeLog?: { module: string; external: boolean; at: number }[]; __unhlwHost?: {
-  mayFocus(name: string): boolean; front(): string | null; powerOn(name: ModuleName): void; bringToFront(name: ModuleName): void; powerOff(name: ModuleName): Promise<PowerOff | null>;
+  sound?: import('./hostSound').HostSound; mayFocus(name: string): boolean; front(): string | null; powerOn(name: ModuleName): void; bringToFront(name: ModuleName): void; powerOff(name: ModuleName): Promise<PowerOff | null>;
 }; } }
 
 /**
@@ -38,6 +41,12 @@ export function App() {
   const [leaving, setLeaving] = useState<ModuleName[]>([]);
   // The hologram: how far each interface is projected (docs/HOLOGRAM-U24.md). Power-off waits for it to retract after the save.
   const projection = useMemo(() => new Projection(NAMES), []);
+  // The rack's own sounds (docs/SOUND-U26.md): off until switched on; never in the way of power, saving or closing.
+  const sound = useMemo(() => createHostSound(), []);
+  const [soundOpen, setSoundOpen] = useState(false);
+  // Safari-family web views do not focus a button on click, so the dialogs cannot rely on `activeElement` to return focus.
+  const opener = useRef<HTMLElement | null>(null);
+  const closeTo = useCallback((close: () => void) => { close(); opener.current?.focus(); }, []);
   const [unsaved, setUnsaved] = useState<Record<string, string>>({});
   // Told once at start: e.g. a verified copy was made before a module's data was upgraded (docs/DATA-SAFETY-U14.md).
   const [notices, setNotices] = useState<{ module: string; message: string }[]>([]);
@@ -105,13 +114,14 @@ export function App() {
     // its close sound gets its requested time to play, as in the standalone apps, and the frame is removed.
     const started = performance.now();
     // (the cap only guards against a frame loop that is not running; the retract itself takes 0.9 s)
+    sound.play('shutdown'); // with the retract, which starts only now that the save is confirmed
     await Promise.race([projection.retract(name), new Promise(resolve => setTimeout(resolve, 2500))]);
     setLeaving(current => [...current, name]);
     await new Promise(resolve => setTimeout(resolve, Math.max(0, result.lingerMs - (performance.now() - started))));
     setLeaving(current => current.filter(n => n !== name));
     update(r => rackModel.finishPowerOff(r, name));
     return result;
-  }, [update, projection]);
+  }, [update, projection, sound]);
 
   async function reload(name: ModuleName) {
     setChangedElsewhere(current => current.filter(n => n !== name));
@@ -120,12 +130,13 @@ export function App() {
   }
 
   useEffect(() => {
-    window.__unhlwHost = { mayFocus: name => rackModel.mayFocus(rackRef.current, name), front: () => rackRef.current.front, powerOn, bringToFront, powerOff };
+    window.__unhlwHost = { sound, mayFocus: name => rackModel.mayFocus(rackRef.current, name), front: () => rackRef.current.front, powerOn, bringToFront, powerOff };
     return () => { delete window.__unhlwHost; };
-  }, [powerOn, bringToFront, powerOff]);
+  }, [sound, powerOn, bringToFront, powerOff]);
   // Debug-only native self-test: press the power switches ourselves (inert in release builds).
-  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else if (scenario === 'external') void runExternalScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
+  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; try { localStorage.removeItem(SOUND_KEY); } catch { /* the self-test starts from default sound settings */ } const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else if (scenario === 'external') void runExternalScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
 
+  const owner = rackModel.stageOwner(rack);
   const ready = useCallback((name: ModuleName) => update(r => rackModel.markReady(r, name)), [update]);
   // A module whose frame never reports that it loaded is an error (the owner can keep waiting, retry or power it off).
   useEffect(() => {
@@ -133,9 +144,21 @@ export function App() {
     return () => timers.forEach(clearTimeout);
   }, [rack, update]);
   const projectorStates = Object.fromEntries(NAMES.map(name => [name, rackModel.projectorState(rack, name)])) as Record<ModuleName, rackModel.ProjectorState>;
+  // Boot, error and switch sounds follow the projector states (a key click is made by the key handler, in its own gesture).
+  const lastStates = useRef<Record<string, rackModel.ProjectorState> | null>(null);
+  const lastOwner = useRef<string | null>(null);
+  useEffect(() => {
+    for (const cue of transitionCues(lastStates.current, projectorStates, lastOwner.current, owner)) sound.play(cue);
+    lastStates.current = projectorStates; lastOwner.current = owner;
+  }, [projectorStates, owner, sound]);
+  // After a module has closed, keyboard focus must not be left on nothing: it returns to that unit's power-on key.
+  const phases = useRef(rack.phase);
+  useEffect(() => {
+    for (const name of NAMES) if (phases.current[name] !== 'off' && rack.phase[name] === 'off' && (!document.activeElement || document.activeElement === document.body)) document.querySelector<HTMLButtonElement>(`button[aria-label="Power on ${MODULES.find(m => m.name === name)?.title}"]`)?.focus();
+    phases.current = rack.phase;
+  }, [rack.phase]);
   const keepOpen = useCallback((name: ModuleName) => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name)); }, [update]);
 
-  const owner = rackModel.stageOwner(rack);
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
   return <main className="host">
@@ -148,7 +171,8 @@ export function App() {
       <button type="button" className="power" autoFocus disabled={upgrading} onClick={() => setAsking(null)}>Not now</button>
       <button type="button" className="power" disabled={upgrading} onClick={() => void confirmUpgrade(asking)}>{upgrading ? 'Backing up…' : 'Back up and upgrade'}</button>
     </div>}
-    {restoring && <RestoreDialog modules={MODULES.map(({ name, title }) => ({ name, title }))} onClose={() => setRestoring(false)} />}
+    {soundOpen && <SoundDialog sound={sound} onClose={() => closeTo(() => setSoundOpen(false))} />}
+    {restoring && <RestoreDialog modules={MODULES.map(({ name, title }) => ({ name, title }))} onClose={() => closeTo(() => setRestoring(false))} />}
     {changedElsewhere.filter(name => rack.phase[name] === 'on').map(name => { const title = MODULES.find(m => m.name === name)?.title; return <div key={name} role="status" className="notice changed"><strong>{title}'s data was changed by another program</strong> (for example a standalone {title}). The screen may show what it read earlier. Reloading saves {title} first, then opens it again from the current data.
       <button type="button" className="power" onClick={() => void reload(name)}>Reload {title}</button>
       <button type="button" className="power" onClick={() => setChangedElsewhere(current => current.filter(n => n !== name))}>Dismiss</button>
@@ -161,9 +185,10 @@ export function App() {
     </div>)}
     </div>
     <div className="workspace">
-      <button type="button" className="restore-link" onClick={() => setRestoring(true)}>Restore data…</button>
+      <button type="button" className="restore-link sound-link" onClick={e => { opener.current = e.currentTarget; setSoundOpen(true); }}>Sound…</button>
+      <button type="button" className="restore-link" onClick={e => { opener.current = e.currentTarget; setRestoring(true); }}>Restore data…</button>
       <Hologram projection={projection} units={NAMES} states={projectorStates} owner={owner} />
-      <Rack units={MODULES} states={projectorStates} actions={{ powerOn: wantOn, front: bringToFront, powerOff: name => void powerOff(name), keepOpen }} />
+      <Rack units={MODULES} states={projectorStates} actions={{ powerOn: name => { sound.play('key-on'); wantOn(name); }, front: name => { sound.play('key-on'); bringToFront(name); }, powerOff: name => { sound.play('key-off'); void powerOff(name); }, keepOpen: name => { sound.play('key-on'); keepOpen(name); }, blocked: () => { sound.play('blocked'); } }} />
       <section className="stage" aria-label="Active modules">
         {shown.length
           ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={owner === module.name} leaving={leaving.includes(module.name)} onFront={bringToFront} onReady={ready} />)

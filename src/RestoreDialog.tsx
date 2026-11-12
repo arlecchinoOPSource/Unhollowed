@@ -18,7 +18,12 @@ export function RestoreDialog({ modules, onClose }: { modules: { name: string; t
   const title = modules.find(m => m.name === module)?.title ?? module;
   const refresh = () => invoke<Listing>('host_list_backups', { module }).then(next => { setListing(next); setChoice(''); }).catch(error => setMessage(String(error)));
   useEffect(() => { void refresh(); }, [module]);
-  useEffect(() => { const opener = document.activeElement as HTMLElement | null; return () => opener?.focus?.(); }, []);
+  // The opener is read while rendering, before `autoFocus` moves focus into the dialog (an effect would see the dialog's own button).
+  const opener = useRef<HTMLElement | null>(document.activeElement as HTMLElement | null);
+  useEffect(() => () => opener.current?.focus?.(), []);
+  // Escape must work even when focus is not inside the dialog: Safari-family web views leave focus on the page after a click on a control.
+  const closeRef = useRef(onClose); closeRef.current = onClose;
+  useEffect(() => { const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') closeRef.current(); }; document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey); }, []);
   async function schedule() {
     setMessage('');
     try { await invoke('host_schedule_restore', { module, file: choice }); await refresh(); setMessage(`Scheduled. Quit and reopen Unhollowed to finish: ${title}'s current data is kept in a safety copy first.`); }
@@ -26,14 +31,13 @@ export function RestoreDialog({ modules, onClose }: { modules: { name: string; t
   }
   async function cancel() { await invoke('host_cancel_restore', { module }).catch(() => undefined); setMessage('The restore was cancelled.'); await refresh(); }
   function keep(event: React.KeyboardEvent) {
-    if (event.key === 'Escape') { onClose(); return; }
     if (event.key !== 'Tab' || !box.current) return;
     const items = [...box.current.querySelectorAll<HTMLElement>('button:not([disabled]), select, input')];
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
-  return <div ref={box} role="dialog" aria-modal="true" aria-labelledby="restore-title" aria-describedby="restore-body" className="upgrade" onKeyDown={keep}>
+  return <div ref={box} role="dialog" aria-modal="true" aria-labelledby="restore-title" aria-describedby="restore-body" className="sheet" onKeyDown={keep}>
     <h2 id="restore-title">Restore {title}'s data</h2>
     <p id="restore-body">Choose a verified copy. Nothing is replaced until Unhollowed is restarted, and what is replaced is first kept in a safety copy.</p>
     <label>Module <select value={module} onChange={event => setModule(event.target.value)}>{modules.map(m => <option key={m.name} value={m.name}>{m.title}</option>)}</select></label>

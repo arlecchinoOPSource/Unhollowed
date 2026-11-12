@@ -44,6 +44,8 @@ export type RackActions = {
   powerOff(name: ModuleName): void;
   /** The I key during an error: keep the module open. */
   keepOpen(name: ModuleName): void;
+  /** A key that cannot be used right now was pressed (the O key of an off unit, or any key while saving). */
+  blocked(name: ModuleName): void;
 };
 
 export function Rack({ units, states, actions }: {
@@ -76,7 +78,7 @@ export function Rack({ units, states, actions }: {
         const label = k === 'i' ? (state === 'off' ? `Power on ${title}` : state === 'error' ? `Keep ${title} open` : `Bring ${title} to front`) : (state === 'error' ? `Retry saving and power off ${title}` : `Power off ${title}`);
         const inert = (k === 'o' && (state === 'off')) || closing;
         const click = () => {
-          if (inert) return;
+          if (inert) { actions.blocked(name); return; }
           if (k === 'i') { if (state === 'off') actions.powerOn(name); else if (state === 'error') actions.keepOpen(name); else actions.front(name); }
           else actions.powerOff(name);
         };
