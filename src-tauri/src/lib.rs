@@ -1,4 +1,5 @@
 mod activation;
+mod changes;
 mod lifecycle;
 mod modules;
 mod selftest;

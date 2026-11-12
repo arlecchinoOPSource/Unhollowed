@@ -3,14 +3,16 @@ import { invoke } from '@tauri-apps/api/core';
 import { ModuleFrame } from './ModuleFrame';
 import { MODULES, type ModuleName } from './modules';
 import * as rackModel from './lifecycle';
-import { runMigrationScenario, runRestoreScenario } from './selftest';
+import { runExternalScenario, runMigrationScenario, runRestoreScenario } from './selftest';
 import { RestoreDialog } from './RestoreDialog';
+import { listen } from '@tauri-apps/api/event';
+import { isExternalChange } from './changes';
 
 const NAMES = MODULES.map(module => module.name);
 type PowerOff = { flushed: boolean; waitedMs: number; lingerMs: number };
 
 /** What the debug-only self-test and the module shim ask of the host (inert in normal use). */
-declare global { interface Window { __unhlwHost?: {
+declare global { interface Window { __unhlwActivity?: Record<string, number>; __unhlwChangeLog?: { module: string; external: boolean; at: number }[]; __unhlwHost?: {
   mayFocus(name: string): boolean; front(): string | null; powerOn(name: ModuleName): void; bringToFront(name: ModuleName): void; powerOff(name: ModuleName): Promise<PowerOff | null>;
 }; } }
 
@@ -38,6 +40,20 @@ export function App() {
   const [waiting, setWaiting] = useState<Record<string, { from: number; to: number }>>({});
   const [asking, setAsking] = useState<ModuleName | null>(null);
   const [restoring, setRestoring] = useState(false);
+  // Another program (for example a standalone app) changed a running module's data: its screen shows what it read earlier.
+  const [changedElsewhere, setChangedElsewhere] = useState<ModuleName[]>([]);
+  useEffect(() => {
+    let stop: (() => void) | undefined; let gone = false;
+    void listen<string>('unhlw-data-changed', event => {
+      const name = event.payload as ModuleName;
+      if (rackRef.current.phase[name] !== 'on') return; // off: it reads fresh when powered on
+      const external = isExternalChange(window.__unhlwActivity?.[name], Date.now());
+      (window.__unhlwChangeLog ??= []).push({ module: name, external, at: Date.now() }); // read by the debug-only self-test
+      if (!external) return;
+      setChangedElsewhere(current => current.includes(name) ? current : [...current, name]);
+    }).then(unlisten => { if (gone) unlisten(); else stop = unlisten; });
+    return () => { gone = true; stop?.(); };
+  }, []);
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeError, setUpgradeError] = useState('');
   useEffect(() => {
@@ -85,12 +101,18 @@ export function App() {
     return result;
   }, [update]);
 
+  async function reload(name: ModuleName) {
+    setChangedElsewhere(current => current.filter(n => n !== name));
+    const result = await powerOff(name); // saves first; if it cannot confirm, the unsaved alert takes over
+    if (result?.flushed) powerOn(name);
+  }
+
   useEffect(() => {
     window.__unhlwHost = { mayFocus: name => rackModel.mayFocus(rackRef.current, name), front: () => rackRef.current.front, powerOn, bringToFront, powerOff };
     return () => { delete window.__unhlwHost; };
   }, [powerOn, bringToFront, powerOff]);
   // Debug-only native self-test: press the power switches ourselves (inert in release builds).
-  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
+  useEffect(() => { void invoke<boolean>('selftest_enabled').then(async enabled => { if (!enabled) return; const scenario = await invoke<string | null>('selftest_scenario'); if (scenario === 'migration') void runMigrationScenario(); else if (scenario === 'restore') void runRestoreScenario(); else if (scenario === 'external') void runExternalScenario(); else MODULES.forEach(module => powerOn(module.name)); }); }, [powerOn]);
 
   const mounted = rackModel.mounted(rack) as ModuleName[];
   const shown = MODULES.filter(module => mounted.includes(module.name));
@@ -122,6 +144,10 @@ export function App() {
       <button type="button" className="power" disabled={upgrading} onClick={() => void confirmUpgrade(asking)}>{upgrading ? 'Backing up…' : 'Back up and upgrade'}</button>
     </div>}
     {restoring && <RestoreDialog modules={MODULES.map(({ name, title }) => ({ name, title }))} onClose={() => setRestoring(false)} />}
+    {changedElsewhere.filter(name => rack.phase[name] === 'on').map(name => { const title = MODULES.find(m => m.name === name)?.title; return <div key={name} role="status" className="notice changed"><strong>{title}'s data was changed by another program</strong> (for example a standalone {title}). The screen may show what it read earlier. Reloading saves {title} first, then opens it again from the current data.
+      <button type="button" className="power" onClick={() => void reload(name)}>Reload {title}</button>
+      <button type="button" className="power" onClick={() => setChangedElsewhere(current => current.filter(n => n !== name))}>Dismiss</button>
+    </div>; })}
     {notices.map((notice, index) => <div key={index} role="status" className="notice"><strong>{notice.module}</strong> {notice.message}<button type="button" className="power" onClick={() => setNotices(current => current.filter((_, i) => i !== index))}>Dismiss</button></div>)}
     {Object.entries(unsaved).map(([name, reason]) => <div key={name} role="alert" className="unsaved">
       <strong>{MODULES.find(m => m.name === name)?.title} did not confirm that it saved.</strong> {reason}

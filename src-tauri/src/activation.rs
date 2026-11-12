@@ -71,6 +71,7 @@ pub fn start(app: &AppHandle, info: &ModuleInfo, folder: PathBuf) -> tauri::Resu
         Some(status) => status,
         None => {
             register(app, info.name, folder.clone())?;
+            crate::changes::watch(app, info.name, file.clone());
             Status::Ready
         }
     };
@@ -127,7 +128,8 @@ pub fn host_confirm_migration(
             info.name
         )
     })?;
-    register(&app, info.name, folder).map_err(|error| error.to_string())?;
+    register(&app, info.name, folder.clone()).map_err(|error| error.to_string())?;
+    crate::changes::watch(&app, info.name, folder.join(info.database_file));
     statuses.insert(module, Status::Ready);
     Ok(())
 }

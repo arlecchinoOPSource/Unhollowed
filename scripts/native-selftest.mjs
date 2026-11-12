@@ -79,6 +79,28 @@ if (code === 0 && safety.exit_code === 0 && backupsOf('ember').length === 1) {
   restored.safety_has_marker = kept.length === 1 && tables(join(dataRoot, emberFolder, 'backups', kept[0])) === 1;
   restored.schedule_consumed = !existsSync(join(dataRoot, emberFolder, 'restore-pending'));
 }
+
+// Phase 4 (U-15, docs/CHANGE-NOTICE-U15.md): while the host runs, another process (standing in for a standalone app) commits to
+// Swish's file. The page must have stayed quiet during Swish's file and then offer a reload.
+let external = {};
+if (code === 0 && safety.exit_code === 0) {
+  const swishDb = join(dataRoot, modules.swish[0], modules.swish[1]);
+  const out4 = join(dir, 'results-external.json');
+  const fourth = spawn(bin, [], { env: { ...process.env, UNHLW_DATA_ROOT: dataRoot, UNHLW_SELFTEST_OUT: out4, UNHLW_SELFTEST_SCENARIO: 'external' }, stdio: 'inherit' });
+  let exited = false;
+  const timer4 = setTimeout(() => { console.error('External-change phase timed out after 120 s'); fourth.kill(); }, 120000);
+  const done4 = new Promise(done => fourth.on('exit', c => { exited = true; done(c); }));
+  await new Promise(r => setTimeout(r, 14000));
+  let writes = 0;
+  while (!exited && writes < 60) {
+    try { const c = new DatabaseSync(swishDb); c.exec('PRAGMA busy_timeout=3000; CREATE TABLE IF NOT EXISTS zz_poke(x); INSERT INTO zz_poke VALUES (1)'); c.close(); writes++; } catch (error) { console.error('external write failed:', String(error)); }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  external.exit_code = await done4;
+  clearTimeout(timer4);
+  external.writes = writes;
+  external.report = existsSync(out4) ? (JSON.parse(readFileSync(out4, 'utf8')).external ?? {}) : {};
+}
 const verified = name => { const m = safety[name] ?? {}; return m.copies === 1 && m.copy_integrity === 'ok' && m.copy_version === 1 && m.copy_rows >= 1 && m.original_version === 1 && m.original_rows === m.copy_rows; };
 const drop = new Set();
 
@@ -94,6 +116,7 @@ rmSync(dir, { recursive: true, force: true });
 results.data_safety = safety;
 results.migration = migration;
 results.restored = restored;
+results.external = external;
 results.group_or_world_accessible = exposed.map(p => p.replace(dataRoot, '<root>'));
 console.log(JSON.stringify(results, null, 2));
 
@@ -137,6 +160,7 @@ const checks = {
   'U-14: confirming made one verified copy first and opened the module (dialog for Ember, command for Swish); originals intact': migration.ember_ready === true && migration.swish_ready === true && verified('ember') && verified('swish'),
   'U-14: backups are listed, bad names refused, a restore can be scheduled and cancelled': migration.backup_listed === true && migration.restore_bad_names_refused === true && migration.restore_schedule_roundtrip === true,
   'U-14: a restore scheduled before start replaced the data before the module opened, kept what it replaced, told the person and was consumed once': restored.exit_code === 0 && restored.marker_gone === true && restored.safety_has_marker === true && restored.schedule_consumed === true && restored.report?.ok === true && restored.report?.ember_opens === true && restored.report?.pending === null && restored.report?.notices?.some(n => /ember: .*was restored/.test(n)) === true,
+  'U-15: with nothing else touching Swish\'s file there was no notice, another process\'s commit raised one, and Reload saved and opened a fresh Swish': external.exit_code === 0 && external.report?.ok === true && external.report?.quiet_without_changes === true && external.report?.notice_names_module === true && external.report?.reload_made_a_new_frame === true && external.report?.notice_gone_after_reload === true,
   'U-14: a second confirm is refused, and only confirmed modules produced a notice': migration.repeat_confirm_refused === true && JSON.stringify(migration.notices_for) === JSON.stringify(['ember', 'swish']) && migration.ok === true && safety.exit_code === 0,
   'data folders and files are owner-only (no group or world access)': exposed.length === 0,
   'database files written in the throwaway root': close.swish_database_exists === true && close.swish_database_bytes > 0 && close.terminal_database_exists === true && close.terminal_database_bytes > 0 && close.ember_database_exists === true && close.ember_database_bytes > 0,

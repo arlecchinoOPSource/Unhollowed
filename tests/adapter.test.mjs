@@ -61,3 +61,16 @@ test('the window adapter gives a module no say over close: it registers nothing 
   assert.equal(typeof unlisten, 'function');
   assert.equal(unlisten(), undefined);
 });
+
+test('every command call stamps the module\'s activity on the host window, at start and when it settles, even on failure', async () => {
+  const { core } = await load();
+  const host = globalThis.window.parent;
+  assert.equal(host.__unhlwActivity, undefined);
+  await core.invoke('load_workspace');
+  const first = host.__unhlwActivity.swish;
+  assert.equal(typeof first, 'number');
+  host.__TAURI_INTERNALS__.invoke = async () => { throw new Error('refused'); };
+  host.__unhlwActivity.swish = 0;
+  await assert.rejects(core.invoke('load_workspace'), /refused/);
+  assert.ok(host.__unhlwActivity.swish > 0, 'stamped even though the call failed');
+});

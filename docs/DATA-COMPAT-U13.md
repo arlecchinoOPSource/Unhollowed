@@ -15,7 +15,7 @@ The host and a standalone app are two programs reading and writing **the same fi
 ## Who may open the file, and when
 
 - Both programs may be open at once. SQLite's write-ahead log and the modules' immediate transactions keep each write atomic (audit: all three use WAL, `synchronous=FULL`, 3–5 s busy timeouts).
-- **What this does not give you:** a running program is not told about the other's writes, and Swish's updates are last-write-wins (audit F4). Change notification and conflict policy are U-15; until then the host's interim rule is to re-read on window focus and after errors.
+- **What this does not give you:** a running program is not told about the other's writes, and Swish's updates are last-write-wins (audit F4). The host notices another program's commits and offers a reload (see [CHANGE-NOTICE-U15.md](CHANGE-NOTICE-U15.md)); it does not merge or resolve conflicts.
 - The host opens a file only through the module's own code, after [`prepare`](DATA-SAFETY-U14.md) has had the chance to back it up. It never rewrites, migrates, copies or deletes a module's file by itself. The one exception is a restore from a verified backup, which requires the module to be off and saves a safety copy first.
 - Real user data stays out of host builds until U-14's remaining items and U-15 pass (accepted earlier; the host still uses synthetic roots in debug builds).
 
