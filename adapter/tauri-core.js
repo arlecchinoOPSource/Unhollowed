@@ -12,7 +12,11 @@ const log = () => (window.__unhlw ??= { module, calls: [] });
 export async function invoke(cmd, args = {}, options) {
   const target = cmd.startsWith('plugin:') ? cmd : `plugin:${module}|${cmd}`;
   log().calls.push(`${cmd} -> ${target}`);
-  return host().invoke(target, args, options);
+  // The host page tells a module's own writes from another program's by when the module last called a command
+  // (docs/CHANGE-NOTICE-U15.md). Marked at the start and again when the call settles.
+  const mark = () => { try { (window.parent.__unhlwActivity ??= {})[module] = Date.now(); } catch { /* not in the host */ } };
+  mark();
+  try { return await host().invoke(target, args, options); } finally { mark(); }
 }
 
 /** Callbacks must live in the host's table: the host evaluates them when an event arrives. */

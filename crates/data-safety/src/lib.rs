@@ -506,5 +506,53 @@ pub fn apply_pending_restore(module: &str, db: &Path, supported: i64) {
     prune(&folder.join("backups"));
 }
 
+/// Notices another program's commits to a database file (docs/CHANGE-NOTICE-U15.md). SQLite's `data_version` changes on a
+/// connection when a *different* connection commits, so a watcher with its own read-only connection sees every commit made
+/// by anyone else: a standalone app, and also the host's module (the caller decides which of those to ignore).
+pub struct ChangeWatcher {
+    path: PathBuf,
+    connection: Option<Connection>,
+    last: Option<i64>,
+}
+
+impl ChangeWatcher {
+    pub fn new(path: &Path) -> Self {
+        Self {
+            path: path.to_path_buf(),
+            connection: None,
+            last: None,
+        }
+    }
+
+    /// True when the file was committed to since the last call. The first successful call only sets the baseline, and a
+    /// file that does not exist yet (or cannot be read right now) reports no change and is retried next time.
+    pub fn changed(&mut self) -> bool {
+        if self.connection.is_none() {
+            if !self.path.exists() {
+                return false;
+            }
+            self.connection = read_only(&self.path).ok();
+        }
+        let Some(connection) = &self.connection else {
+            return false;
+        };
+        match pragma(connection, "data_version") {
+            Ok(now) => {
+                let changed = self.last.is_some_and(|last| last != now);
+                self.last = Some(now);
+                changed
+            }
+            Err(_) => {
+                // The file was replaced (a restore) or is briefly unreadable: start again from a new baseline.
+                self.connection = None;
+                self.last = None;
+                false
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod change_tests;
 #[cfg(test)]
 mod tests;

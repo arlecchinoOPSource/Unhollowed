@@ -237,10 +237,32 @@ export async function runSelfTest(name: ModuleName, frame: HTMLIFrameElement | n
 }
 
 /**
- * U-14 scenario (docs/DATA-SAFETY-U14.md). The host was started on existing data with a debug-only override that makes
- * every file look one version old, so no module is open yet. This drives the real page: declining leaves a module closed and
- * untouched, confirming through the dialog (or the command) makes the verified copy and opens it, and a confirmed module works.
+ * Phase 4 (docs/CHANGE-NOTICE-U15.md): Swish is powered on and left alone: no notice may appear while nothing else touches its
+ * file. Then the runner writes to Swish's file from another process, and the page must offer a reload, which saves, removes
+ * the frame and opens a fresh one. (A module's own write being classed as its own is covered by unit tests of the rule and
+ * of the adapter's stamping; this scenario cannot make Swish write without driving its UI.)
  */
+export async function runExternalScenario(): Promise<void> {
+  const report: Record<string, unknown> = {};
+  const button = (label: string) => [...document.querySelectorAll('button')].find(b => b.textContent?.trim() === label);
+  const banner = () => document.querySelector('.notice.changed');
+  try {
+    (await until('Swish power-on button', () => button('Swish: power on'))).click();
+    const first = await until('the Swish frame', () => document.querySelector('iframe[title="Swish"]'), 20000);
+    await sleep(8000); // the runner starts writing only after this
+    report.quiet_without_changes = !banner() && ((window as Window).__unhlwChangeLog ?? []).length === 0;
+    const shown = await until('the changed-elsewhere notice', banner, 45000);
+    report.notice_names_module = /Swish/.test(shown.textContent ?? '') && /another program/.test(shown.textContent ?? '');
+    (await until('Reload Swish', () => button('Reload Swish'))).click();
+    const fresh = await until('a new Swish frame', () => { const f = document.querySelector('iframe[title="Swish"]'); return f && f !== first ? f : null; }, 20000);
+    report.reload_made_a_new_frame = !!fresh;
+    report.notice_gone_after_reload = !banner();
+    report.ok = true;
+  } catch (error) { report.ok = false; report.error = String(error); }
+  await invoke('selftest_report', { name: 'external', data: report });
+  await invoke('selftest_finish');
+}
+
 /** Phase 3: the host was started with a restore scheduled; it must have been applied before Ember opened. */
 export async function runRestoreScenario(): Promise<void> {
   const report: Record<string, unknown> = {};
@@ -254,6 +276,11 @@ export async function runRestoreScenario(): Promise<void> {
   await invoke('selftest_finish');
 }
 
+/**
+ * U-14 scenario (docs/DATA-SAFETY-U14.md). The host was started on existing data with a debug-only override that makes
+ * every file look one version old, so no module is open yet. This drives the real page: declining leaves a module closed and
+ * untouched, confirming through the dialog (or the command) makes the verified copy and opens it, and a confirmed module works.
+ */
 export async function runMigrationScenario(): Promise<void> {
   const report: Record<string, unknown> = {};
   const status = async (module: string) => (await invoke<{ state: string }>('host_module_status', { module })).state;
