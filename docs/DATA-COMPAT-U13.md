@@ -30,7 +30,7 @@ Compatibility is the file's `PRAGMA user_version`, owned by the module.
 | **Standalone is newer** than the host's module | The standalone migrates. The host's older module refuses the file with the module's own message and changes nothing (tested upstream for all three) | The module |
 | File from another app or damaged | The module refuses (Swish checks `application_id`; Terminal and Ember find missing tables) | The module |
 
-Rules for any future schema change (**Proposed**, to be written into each module's contributor guide):
+Rules for any future schema change (**Approved by the product owner, 2026-11-12**; to be written into each module's contributor guide):
 
 1. Migrations are forward-only, run in one transaction, and refuse a newer file before any write (already true for all three).
 2. A schema bump changes the module's `schema_version` declared in the host (`ModuleInfo`). A test in each plugin fails until it does, so the backup-before-migrate rule cannot silently stop applying.
@@ -51,7 +51,7 @@ Rules for any future schema change (**Proposed**, to be written into each module
 - No cross-app transactions, and no promise that two programs editing the same row converge (U-15).
 - No downgrade path: restoring the pre-migration copy is the only way back, and it discards later changes.
 
-## Decisions needed from the owner
+## Decisions (owner, 2026-11-12)
 
-1. Approve the five rules above for schema changes.
-2. Decide, for U-15, whether Swish gets an expected-version check upstream or the host only warns (F4).
+1. **Approved:** the five rules above for schema changes.
+2. **Approved:** Swish gets an expected-version check upstream (audit F4). Swish PR [#40](https://github.com/arlecchinoOPSource/Swish/pull/40) adds an optional `expectedUpdatedAt` to `update_project` and `update_reminder` (no schema change, so no migration): a stale edit is refused with the existing `changed` error and the other change is kept. It takes effect in the host when the pin moves to the merged commit; until then Swish remains last-write-wins in the host and the change notice (U-15) is the only mitigation.

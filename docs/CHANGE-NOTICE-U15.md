@@ -16,7 +16,7 @@ The host cannot safely push new data into a module's screen (it would replace wh
 2. **Tell the page** with the event `unhlw-data-changed` (module name only).
 3. **Ignore the module's own commits.** The watcher also sees the module's own writes. The adapter stamps each module command (at start and when it settles) on the host window; the page treats a change as another program's only if the module made no call in the last 3 s (`src/changes.ts`).
 4. **Offer a reload**, for a running module only (a module that is off reads fresh when powered on): a notice names the module and says another program changed its data. *Reload* is the existing power-off path (the module saves first; if it cannot confirm, the unsaved alert takes over) followed by power-on from the current data. *Dismiss* keeps going.
-5. **Conflicts are not resolved by the host.** Terminal keeps rejecting a stale save through its own revision check. Swish stays last-write-wins; the notice is the host's mitigation for F4. Whether Swish gets an expected-version check upstream remains the owner's decision (U-13, decision 2); nothing was changed in Swish.
+5. **Conflicts are not resolved by the host.** Terminal keeps rejecting a stale save through its own revision check. Swish stays last-write-wins; the notice is the host's mitigation for F4. The owner approved an upstream expected-version check (U-13, decision 2): Swish PR [#40](https://github.com/arlecchinoOPSource/Swish/pull/40) makes a stale edit fail instead of overwrite. It reaches the host with the next re-pin; this PR changed nothing in Swish.
 
 ## Evidence
 
