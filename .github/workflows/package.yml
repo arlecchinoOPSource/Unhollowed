@@ -1,0 +1,96 @@
+name: Package
+
+# Builds the Windows installers (NSIS and MSI), checks them by installing and uninstalling in a throwaway profile, and keeps them as
+# a workflow artifact. It signs nothing and publishes nothing: installers are unsigned (owner decision, docs/DECISIONS.md U-36), and
+# a release is made by the owner, never by this workflow (docs/PACKAGING-U29.md). macOS bundles are built and checked on a Mac
+# (docs/LOCAL_MACOS_TESTING.md) because hosted macOS runners were unreliable.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/package.yml'
+      - 'scripts/package.mjs'
+      - 'scripts/verify-package.mjs'
+      - 'src-tauri/tauri.conf.json'
+      - 'src-tauri/Cargo.toml'
+      - 'src-tauri/icons/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+# actions/checkout v4 11d5960a326750d5838078e36cf38b85af677262, actions/setup-node v4 49933ea5288caeca8642d1e84afbd3f7d6820020,
+# dtolnay/rust-toolchain stable b725eda525362e7cf34af9a7243cac1e3f01a7ec, actions/upload-artifact v4 ea165f8d65b6e75b540449e92b4886f43607fa02
+
+jobs:
+  windows:
+    name: windows installers
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+    env:
+      CORE_KEY_SET: ${{ secrets.CORE_READ_KEY != '' }}
+    steps:
+      - name: Skip when Core cannot be read
+        if: env.CORE_KEY_SET != 'true'
+        shell: bash
+        run: echo "::notice::CORE_READ_KEY is not set, so packaging was skipped. See docs/CI.md."
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          persist-credentials: false
+      - name: Read the pinned Swish commit
+        if: env.CORE_KEY_SET == 'true'
+        id: pin
+        shell: bash
+        run: echo "sha=$(node -p "require('./modules.json').swish.sha")" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned Swish (public, no submodules)
+        if: env.CORE_KEY_SET == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: arlecchinoOPSource/Swish
+          ref: ${{ steps.pin.outputs.sha }}
+          path: .modules/swish
+          persist-credentials: false
+      - name: Read the Core commit Swish pins
+        if: env.CORE_KEY_SET == 'true'
+        id: core
+        shell: bash
+        run: echo "sha=$(git -C .modules/swish rev-parse HEAD:vendor/arlecchino-core)" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned private Core
+        if: env.CORE_KEY_SET == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: arlecchinoOPSource/Arlecchino-Core
+          ref: ${{ steps.core.outputs.sha }}
+          path: .modules/swish/vendor/arlecchino-core
+          ssh-key: ${{ secrets.CORE_READ_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        if: env.CORE_KEY_SET == 'true'
+        with:
+          toolchain: stable
+      - if: env.CORE_KEY_SET == 'true'
+        run: npm ci
+      - name: Build the installers (unsigned)
+        if: env.CORE_KEY_SET == 'true'
+        shell: bash
+        run: node scripts/package.mjs
+      - name: Check the installers (install, start, uninstall in a throwaway profile)
+        if: env.CORE_KEY_SET == 'true'
+        shell: bash
+        run: node scripts/verify-package.mjs
+      - name: Keep the installers (not a release)
+        if: env.CORE_KEY_SET == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: unhollowed-windows-unsigned
+          path: release-out/
+          retention-days: 14

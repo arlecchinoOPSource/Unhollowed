@@ -12,3 +12,4 @@ target/
 public/modules/*
 !public/modules/shim.js
 src-tauri/gen/
+release-out/

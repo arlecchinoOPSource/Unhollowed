@@ -143,3 +143,7 @@ npm run build:web
 cargo build -p unhollowed --features custom-protocol
 npm run test:native
 ```
+
+## Packaging check (U-29)
+
+To build and check the distributable bundle on a Mac (universal `.app` and `.dmg`, ad-hoc signed, checks signing status, startup, the release data root and the disk image): `node scripts/package.mjs --universal` then `node scripts/verify-package.mjs --universal`. Details and limits: [PACKAGING-U29.md](PACKAGING-U29.md).
