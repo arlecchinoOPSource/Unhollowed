@@ -30,7 +30,8 @@ export function acceptable(expr) {
 function textOf(dir) {
   if (!dir || !existsSync(dir)) return '';
   const files = readdirSync(dir).filter(n => licenceFile.test(n)).sort();
-  return files.map(n => { try { return readFileSync(join(dir, n), 'utf8').trim(); } catch { return ''; } }).filter(Boolean).join('\n\n');
+  // Line endings are normalised: some crates ship CRLF texts, and Git (and Windows checkouts) rewrite line endings, so the file and the check must not depend on them.
+  return files.map(n => { try { return readFileSync(join(dir, n), 'utf8').replace(/\r\n?/g, '\n').trim(); } catch { return ''; } }).filter(Boolean).join('\n\n');
 }
 
 function rust() {
@@ -120,7 +121,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (fallbacks.length) console.log(`\n${fallbacks.length} packages ship no licence file of their own (standard text or a pointer to the source was used): ${fallbacks.map(p => p.name).join(', ')}`);
   if (problems.length) console.log(`\n${problems.length} to look at:\n  ${problems.join('\n  ')}`);
   if (process.argv.includes('--check')) {
-    const same = existsSync(outFile) && readFileSync(outFile, 'utf8') === text;
+    const same = existsSync(outFile) && readFileSync(outFile, 'utf8').replace(/\r\n?/g, '\n') === text;
     console.log(same ? '\nTHIRD-PARTY-NOTICES.txt is up to date.' : '\nTHIRD-PARTY-NOTICES.txt is out of date: run node scripts/third-party-notices.mjs');
     process.exit(same && problems.length === 0 ? 0 : 1);
   }
