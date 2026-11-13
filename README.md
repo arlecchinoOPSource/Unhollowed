@@ -4,7 +4,14 @@ UNHLW is a planned local-first desktop suite uniting the real Terminal journal, 
 
 The interface is envisioned as a solid metallic rack with three projector units and interactive holographic app interfaces. The planned implementation uses Tauri 2, React, TypeScript, Vite and Rust, with Blender-produced 2.5D assets and a reviewed, pinned Arlecchino Core dependency.
 
-**Status:** foundation scaffold (U-03). A Tauri host named Unhollowed runs the real Swish, Terminal and Ember web apps side by side in iframes, against their real storage code (see docs/SLICE-U03.md and docs/TERMINAL-U06.md). Ember is not embedded yet, there is no rack artwork, CI runs the checks on macOS and Windows (docs/CI.md); packaging and release are not established. Builds are unsigned and there is no in-app updater. Follow [the backlog](docs/BACKLOG-DRAFT.md), [architecture](docs/ARCHITECTURE.md), [roadmap](docs/ROADMAP.md) and [contributing](CONTRIBUTING.md). Track work in [GitHub issues](https://github.com/arlecchinoOPSource/Unhollowed/issues). The owner approves merges and releases.
+**Status:** development build 0.1.0, not released. Unhollowed runs the real Terminal, Ember and Swish web apps in one host window, each against its own storage code and data folder (shared with the standalone apps), behind a rack of three projectors with a hologram effect, optional rack sounds and verified backups before any data upgrade. macOS and Windows installers can be built (docs/PACKAGING-U29.md) but are **unsigned**: macOS builds are ad-hoc signed and not notarized, Windows installers are not code-signed, and there is **no automatic updater**. The remaining release work is tracked in the issues (U-27, U-28, U-30).
+
+## Privacy (what has been verified, docs/REVIEW-U28.md)
+
+- No accounts, no telemetry and no update check. The shipped web content makes no network request to any other site, the host contains no HTTP client, and its security policy only allows the app's own content and its local command channel. While a real run was sampled, the app opened no network connection.
+- Data stays on this computer, in the same folders as the standalone apps (owner-only permissions on macOS), and is never opened or changed without a verified copy first when its format must be upgraded.
+- Not claimed: zero network traffic. The operating system's web view (Windows WebView2 in particular) may make its own connections.
+- Third-party code, fonts and sounds and their licences: THIRD-PARTY-NOTICES.txt (also inside the installed app).
 
 Use the private [Arlecchino Development board](https://github.com/users/arlecchinoOPSource/projects/3) to follow the backlog. Branch protection is enabled on `main` (docs/CI.md): changes need a pull request and green `checks` on macOS and Windows; the owner's approval and the independent review stay a manual gate.
 

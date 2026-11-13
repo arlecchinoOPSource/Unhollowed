@@ -154,7 +154,12 @@ export function App() {
   // After a module has closed, keyboard focus must not be left on nothing: it returns to that unit's power-on key.
   const phases = useRef(rack.phase);
   useEffect(() => {
-    for (const name of NAMES) if (phases.current[name] !== 'off' && rack.phase[name] === 'off' && (!document.activeElement || document.activeElement === document.body)) document.querySelector<HTMLButtonElement>(`button[aria-label="Power on ${MODULES.find(m => m.name === name)?.title}"]`)?.focus();
+    for (const name of NAMES) {
+      if (phases.current[name] === 'off' || rack.phase[name] !== 'off') continue;
+      const title = MODULES.find(m => m.name === name)?.title, active = document.activeElement as HTMLElement | null;
+      // nothing focused, or focus still on that unit's now-unusable power-off key: move to its power-on key
+      if (!active || active === document.body || active.getAttribute('aria-label') === `Power off ${title}`) document.querySelector<HTMLButtonElement>(`button[aria-label="Power on ${title}"]`)?.focus();
+    }
     phases.current = rack.phase;
   }, [rack.phase]);
   const keepOpen = useCallback((name: ModuleName) => { setUnsaved(({ [name]: _gone, ...rest }) => rest); update(r => rackModel.keepOpen(r, name)); }, [update]);
@@ -185,10 +190,10 @@ export function App() {
     </div>)}
     </div>
     <div className="workspace">
-      <button type="button" className="restore-link sound-link" onClick={e => { opener.current = e.currentTarget; setSoundOpen(true); }}>Sound…</button>
-      <button type="button" className="restore-link" onClick={e => { opener.current = e.currentTarget; setRestoring(true); }}>Restore data…</button>
       <Hologram projection={projection} units={NAMES} states={projectorStates} owner={owner} />
       <Rack units={MODULES} states={projectorStates} actions={{ powerOn: name => { sound.play('key-on'); wantOn(name); }, front: name => { sound.play('key-on'); bringToFront(name); }, powerOff: name => { sound.play('key-off'); void powerOff(name); }, keepOpen: name => { sound.play('key-on'); keepOpen(name); }, blocked: () => { sound.play('blocked'); } }} />
+      <button type="button" className="restore-link sound-link" onClick={e => { opener.current = e.currentTarget; setSoundOpen(true); }}>Sound…</button>
+      <button type="button" className="restore-link" onClick={e => { opener.current = e.currentTarget; setRestoring(true); }}>Restore data…</button>
       <section className="stage" aria-label="Active modules">
         {shown.length
           ? shown.map(module => <ModuleFrame key={`${module.name}-${rack.epoch[module.name]}`} name={module.name} title={module.title} front={owner === module.name} leaving={leaving.includes(module.name)} onFront={bringToFront} onReady={ready} />)

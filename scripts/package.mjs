@@ -56,6 +56,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 
   // The pinned modules must be built into the page first (the bundle's `beforeBuildCommand` builds only the host page).
   run('node', ['scripts/build-modules.mjs']);
+  // The notices file ships inside the app; it must match the packages that really go in (docs/REVIEW-U28.md).
+  run('node', ['scripts/third-party-notices.mjs', '--check']);
   const bundles = platform === 'darwin' ? 'app,dmg' : 'nsis,msi';
   const args = ['tauri', 'build', '--bundles', bundles, ...(universal ? ['--target', 'universal-apple-darwin'] : [])];
   run('npx', args);

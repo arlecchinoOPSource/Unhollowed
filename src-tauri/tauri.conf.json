@@ -38,6 +38,7 @@
       "icons/icon.ico"
     ],
     "category": "Productivity",
+    "resources": { "../THIRD-PARTY-NOTICES.txt": "THIRD-PARTY-NOTICES.txt" },
     "shortDescription": "Terminal, Ember and Swish in one place",
     "macOS": { "minimumSystemVersion": "11.0", "signingIdentity": "-" },
     "windows": {
