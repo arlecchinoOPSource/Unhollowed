@@ -65,9 +65,6 @@ Rack keys' hit areas (24 x 24 px minimum) and click-through picture layers; Tab 
 - Whether anyone on the real network could observe anything from the web view; the "no connection while sampled" result is a sample, not a proof.
 - Touch input, high-contrast mode and zoom beyond 200%.
 
-## 7. Decisions needed from the owner
+## 7. Owner decisions (2026-11-13)
 
-1. **A licence for the host repository and for Swish** (Terminal and Ember are MIT). Without one, the installers carry no statement of the terms for the host's own code.
-2. **Ember's and Swish's use of the owner's own audio**: Ember's documentation still says reuse "needs the owner's explicit confirmation" while Core's provenance says suite reuse follows the owner's request. One sentence from the owner settles it.
-3. The performance budgets above, and whether to raise the minimum window size (today 640 x 480) so the rack is drawn larger.
-4. Whether to run a screen-reader pass (VoiceOver on macOS, NVDA on Windows) before release.
+Decided: **MIT** for the host repository and Swish (Terminal and Ember already are); the owner's own audio may be **reused** across the suite; the proposed **budgets are accepted** and the **minimum window stays 640 x 480**; a **screen-reader pass** is wanted ([SCREEN-READER-U28.md](SCREEN-READER-U28.md)). Recorded in [DECISIONS.md](DECISIONS.md).

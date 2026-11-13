@@ -4,7 +4,7 @@ UNHLW is a planned local-first desktop suite uniting the real Terminal journal, 
 
 The interface is envisioned as a solid metallic rack with three projector units and interactive holographic app interfaces. The planned implementation uses Tauri 2, React, TypeScript, Vite and Rust, with Blender-produced 2.5D assets and a reviewed, pinned Arlecchino Core dependency.
 
-**Status:** development build 0.1.0, not released. Unhollowed runs the real Terminal, Ember and Swish web apps in one host window, each against its own storage code and data folder (shared with the standalone apps), behind a rack of three projectors with a hologram effect, optional rack sounds and verified backups before any data upgrade. macOS and Windows installers can be built (docs/PACKAGING-U29.md) but are **unsigned**: macOS builds are ad-hoc signed and not notarized, Windows installers are not code-signed, and there is **no automatic updater**. The remaining release work is tracked in the issues (U-27, U-28, U-30).
+**Status:** 1.0.0 release candidate, not published (docs/RELEASE-CHECKLIST-U30.md). Unhollowed runs the real Terminal, Ember and Swish web apps in one host window, each against its own storage code and data folder (shared with the standalone apps), behind a rack of three projectors with a hologram effect, optional rack sounds and verified backups before any data upgrade. macOS and Windows installers can be built (docs/PACKAGING-U29.md) but are **unsigned**: macOS builds are ad-hoc signed and not notarized, Windows installers are not code-signed, and there is **no automatic updater**. The remaining release work is tracked in the issues (U-27, U-28, U-30).
 
 ## Privacy (what has been verified, docs/REVIEW-U28.md)
 

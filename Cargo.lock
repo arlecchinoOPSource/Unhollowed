@@ -3432,7 +3432,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-ember"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ember-by-arlecchino",
  "serde_json",
@@ -3468,7 +3468,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-swish"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde_json",
  "swish",
@@ -3481,7 +3481,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-terminal"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde_json",
  "tauri",
@@ -3926,7 +3926,7 @@ checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
 name = "unhlw-data-safety"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rusqlite",
  "serde",
@@ -3934,14 +3934,14 @@ dependencies = [
 
 [[package]]
 name = "unhlw-host-contract"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "unhollowed"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
