@@ -92,30 +92,40 @@ async function windows() {
   check('NOT code-signed (as decided in U-36; the release notes must say so)', /NotSigned/.test(signature.stdout), signature.stdout);
 
   if (!nsis.endsWith('.exe') || !existsSync(nsis)) return;
-  // Install per user, silently, into a throwaway profile so nothing of the real one is touched.
-  const profile = mkdtempSync(join(tmpdir(), 'unhlw-win-profile-'));
-  const env = { ...process.env, LOCALAPPDATA: join(profile, 'Local'), APPDATA: join(profile, 'Roaming'), USERPROFILE: profile };
-  mkdirSync(env.LOCALAPPDATA, { recursive: true }); mkdirSync(env.APPDATA, { recursive: true });
-  const install = sh(nsis, ['/S'], { env });
-  const exeCandidates = [join(env.LOCALAPPDATA, conf.productName, 'unhollowed.exe'), join(env.LOCALAPPDATA, 'Programs', conf.productName, 'unhollowed.exe')];
+  // The installer writes to the real user profile (NSIS and Windows ignore overridden environment variables), so installing and
+  // uninstalling is done only on a disposable machine: a CI runner, or when asked for with --allow-real-install.
+  if (process.env.CI !== 'true' && !process.argv.includes('--allow-real-install')) {
+    console.log('SKIP  install, start and uninstall (they would touch this user\'s real profile; run in CI or pass --allow-real-install on a disposable machine)');
+    return;
+  }
+  const until = async (test, ms = 90000) => { const end = Date.now() + ms; while (Date.now() < end) { if (test()) return true; await sleep(1000); } return test(); };
+  const local = process.env.LOCALAPPDATA, roamingRoot = process.env.APPDATA;
+  const exeCandidates = [join(local, conf.productName, 'unhollowed.exe'), join(local, 'Programs', conf.productName, 'unhollowed.exe')];
+  check('nothing is installed yet', !exeCandidates.some(existsSync), exeCandidates.join('\n'));
+  const install = sh(nsis, ['/S']);
+  const found = await until(() => exeCandidates.some(existsSync));
   const exe = exeCandidates.find(existsSync);
-  check('silent per-user install puts the app under the user profile (no administrator needed)', install.status === 0 && !!exe, `${install.stderr}\n${exeCandidates.join('\n')}`);
+  check('silent per-user install puts the app under the user profile (no administrator needed)', found && !!exe, `${install.stderr}\n${exeCandidates.join('\n')}`);
   if (!exe) return;
   const installDir = dirname(exe);
   // Data that already exists (as if the standalone apps had been used) must survive everything below.
-  const sentinel = MODULE_FOLDERS.map(f => { const dir = join(env.APPDATA, f); mkdirSync(dir, { recursive: true }); const file = join(dir, 'sentinel.txt'); writeFileSync(file, 'kept'); return file; });
-  const ran = await launch(exe, env);
+  const existed = MODULE_FOLDERS.map(f => existsSync(join(roamingRoot, f)));
+  const sentinel = MODULE_FOLDERS.map(f => { const dir = join(roamingRoot, f); mkdirSync(dir, { recursive: true }); const file = join(dir, 'sentinel.txt'); writeFileSync(file, 'kept'); return file; });
+  const ran = await launch(exe, {});
   check('the installed app starts and stays running', ran.stillRunning, `exited with ${ran.exited}`);
-  const roaming = readdirSync(env.APPDATA);
+  const roaming = readdirSync(roamingRoot);
   check('each module gets its own data folder directly under the roaming profile (the release data root, shared with the standalone apps)', MODULE_FOLDERS.every(f => roaming.includes(f)), roaming.join(', '));
   const uninstaller = join(installDir, 'uninstall.exe');
   check('the installer left an uninstaller', existsSync(uninstaller), installDir);
   if (existsSync(uninstaller)) {
-    const un = sh(uninstaller, ['/S'], { env }); await sleep(6000); // NSIS uninstallers detach and finish a moment later
-    check('uninstalling removes the program files', !existsSync(exe), `${un.stderr}\n${installDir}`);
+    sh(uninstaller, ['/S']);
+    const gone = await until(() => !existsSync(exe));
+    check('uninstalling removes the program files', gone, installDir);
     check('uninstalling leaves every module\'s data alone (shared with the standalone apps)', sentinel.every(existsSync), sentinel.filter(f => !existsSync(f)).join('\n'));
   }
-  rmSync(profile, { recursive: true, force: true });
+  // leave nothing behind on a machine that was not disposable after all
+  sentinel.forEach(f => rmSync(f, { force: true }));
+  MODULE_FOLDERS.forEach((f, i) => { if (!existed[i]) rmSync(join(roamingRoot, f), { recursive: true, force: true }); });
 }
 
 if (process.platform === 'darwin') await macos();

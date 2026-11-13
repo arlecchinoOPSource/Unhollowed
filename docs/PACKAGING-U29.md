@@ -19,7 +19,7 @@ What `verify-package.mjs` checks on the macOS bundle: identity (`com.arlecchino.
 
 ## Build and check (Windows)
 
-`.github/workflows/package.yml` runs on a pull request that touches packaging, and on demand (`workflow_dispatch`): it builds the NSIS and MSI installers (unsigned), then `verify-package.mjs` **silently installs the NSIS installer per user into a throwaway profile**, starts the app, checks the module folders it creates under the roaming profile, **uninstalls**, and checks that the program files are gone and that **every module's data (a sentinel file planted in each module's folder) is still there**. The installers are kept as a 14-day workflow artifact, not a release. Like the native self-test it needs the `CORE_READ_KEY` secret (Swish's private Core submodule) and is skipped, not failed, without it ([CI.md](CI.md)).
+`.github/workflows/package.yml` runs on a pull request that touches packaging, and on demand (`workflow_dispatch`): it builds the NSIS and MSI installers (unsigned), then `verify-package.mjs` **silently installs the NSIS installer per user on the runner** (the runner is disposable; on any other machine this part is skipped unless `--allow-real-install` is given, because the installer writes to the real profile), starts the app, checks the module folders it creates under the roaming profile, **uninstalls**, and checks that the program files are gone and that **every module's data (a sentinel file planted in each module's folder) is still there**. The installers are kept as a 14-day workflow artifact, not a release. Like the native self-test it needs the `CORE_READ_KEY` secret (Swish's private Core submodule) and is skipped, not failed, without it ([CI.md](CI.md)).
 
 ## What users see on first launch (unsigned)
 
