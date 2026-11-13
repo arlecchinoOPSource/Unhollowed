@@ -37,8 +37,9 @@ function textOf(dir) {
 function rust() {
   const meta = JSON.parse(spawnSync('cargo', ['metadata', '--format-version', '1', '--locked'], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 }).stdout);
   const dirs = new Map(meta.packages.map(p => [`${p.name}@${p.version}`, { dir: dirname(p.manifest_path), license: p.license, repository: p.repository, source: p.source }]));
-  // Only what ships: the macOS (both architectures) and Windows builds, not Linux, Android or iOS crates.
-  const tree = ['aarch64-apple-darwin', 'x86_64-apple-darwin', 'x86_64-pc-windows-msvc'].map(target => spawnSync('cargo', ['tree', '-p', 'unhollowed', '-e', 'normal', '--target', target, '--prefix', 'none', '--format', '{p}', '--locked'], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 }).stdout).join('\n');
+  // Only what ships: the macOS (both architectures) and Windows builds, not Linux, Android or iOS crates, and not proc-macro crates (they
+  // run at build time and their host-dependent dependencies would make the list differ between the machines that generate it).
+  const tree = ['aarch64-apple-darwin', 'x86_64-apple-darwin', 'x86_64-pc-windows-msvc'].map(target => spawnSync('cargo', ['tree', '-p', 'unhollowed', '-e', 'normal,no-proc-macro', '--target', target, '--prefix', 'none', '--format', '{p}', '--locked'], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 }).stdout).join('\n');
   const seen = new Map();
   for (const line of tree.split('\n')) {
     const m = /^(\S+) v(\S+)/.exec(line.replace(/ \(\*\)$/, ''));
@@ -68,7 +69,8 @@ function npm() {
     if (seen.has(key)) return;
     const license = typeof pkg.license === 'string' ? pkg.license : pkg.license?.type ?? (pkg.licenses ?? []).map(l => l.type).join(' OR ');
     seen.set(key, { kind: 'npm', name: pkg.name, version: pkg.version, license, repository: typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url, text: textOf(found) });
-    for (const dep of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies })) walk(dir, dep, found);
+    // optional dependencies are platform-specific native add-ons of build tools; they are not part of what ships and would make the list machine-dependent
+    for (const dep of Object.keys(pkg.dependencies ?? {})) walk(dir, dep, found);
   };
   for (const [, dir] of roots) {
     const pkgPath = join(dir, 'package.json');
