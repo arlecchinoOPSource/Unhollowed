@@ -104,3 +104,12 @@ html, body, #root { height: 100%; margin: 0; }
   padding: 14px 16px; background: #161b1d; border: 1px solid #5d6a70; border-radius: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, .6); }
 .sheet h2 { margin: 0; font-size: 1rem; }
 .sheet p { margin: 0; max-width: 70ch; }
+
+/* WCAG 2.2 target size (2.5.8): every rack key can be hit in at least a 24 x 24 px area, however small the rack is drawn. The picture
+   stays as it is; an invisible area grows vertically around the key and outward on its outer side (the two keys of a rocker touch). */
+.rack-key::before { content: ''; position: absolute; top: 50%; height: max(100%, 24px); transform: translateY(-50%); }
+.rack-key.key-i::before { right: 0; width: max(100%, 24px); }
+.rack-key.key-o::before { left: 0; width: max(100%, 24px); }
+/* Only the keys take the pointer; the picture layers around them (units, emitter and chase boxes) must not sit on top of a key's hit area. */
+.rack-unit, .rack-box, .rack-window, .rack-needle { pointer-events: none; }
+.rack-key { pointer-events: auto; }

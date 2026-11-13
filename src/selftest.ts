@@ -231,6 +231,8 @@ async function runAll(): Promise<void> {
     states: [...document.querySelectorAll('.rack-unit')].map(u => (u as HTMLElement).dataset.state),
     keys: rackKeys.length,
     keys_named: rackKeys.every(b => (b.getAttribute('aria-label') ?? '').length > 3),
+    // WCAG 2.2 target size: probing around each key, the area that really hits that key is at least 24 x 24 px (it is bigger than the drawing)
+    hit_24: rackKeys.every(b => { const r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (let dx = -20; dx <= 20; dx++) for (let dy = -20; dy <= 20; dy++) if (document.elementsFromPoint(cx + dx, cy + dy)[0] === b) { x0 = Math.min(x0, dx); x1 = Math.max(x1, dx); y0 = Math.min(y0, dy); y1 = Math.max(y1, dy); } return x1 - x0 >= 23 && y1 - y0 >= 23; }),
     box: rackBox ? [rackBox.left, rackBox.top, rackBox.right, rackBox.bottom, rackBox.width / rackBox.height] : null,
     fits_window: !!rackBox && rackBox.top >= 0 && rackBox.bottom <= window.innerHeight + 1 && rackBox.right <= window.innerWidth,
     visible_frames: [...document.querySelectorAll('.module-slot')].filter(slot => getComputedStyle(slot).visibility === 'visible').length,
