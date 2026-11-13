@@ -45,3 +45,11 @@ Result of the U-31 Windows re-run (issue [#52](https://github.com/arlecchinoOPSo
 ## Proposals and unresolved decisions
 
 Specification and architecture baseline: [SPECIFICATION.md](SPECIFICATION.md), [ARCHITECTURE.md](ARCHITECTURE.md). Still open: meaning of projector power for unsaved work and timers; cross-process change notification and conflict policy (U-15); performance budgets; Windows behaviour; branch protection; Ember release v2.0.2 provenance. Record alternatives, rationale, consequences, date and owner when each is decided.
+
+## Accepted — U-28 follow-ups and the 1.0.0 candidate (product owner, 2026-11-13)
+
+- **Licence: MIT** for the host repository (`LICENSE`, "Copyright (c) 2026 Arlecchino", the same text as Terminal and Ember) and for Swish (Swish PR [#41](https://github.com/arlecchinoOPSource/Swish/pull/41)). The licence ships inside both installers.
+- **Audio rights: reuse.** The owner's own sounds (startup, close, interface, completion, error) may be used by Terminal, Ember, Swish and the suite. Ember's older note that reuse "needs the owner's explicit confirmation" is superseded by this decision (that note lives in Ember's repository and was not edited).
+- **Budgets and window size:** the proposed budgets in [REVIEW-U28.md](REVIEW-U28.md) (p95 frame time at most 20 ms during projection animations, no frame loop while idle, decoded rack art at most 32 MB, total memory with all three modules at most 600 MB) are accepted; **the minimum window stays 640 x 480**.
+- **Screen-reader pass: yes** ([SCREEN-READER-U28.md](SCREEN-READER-U28.md)).
+- **Version 1.0.0** is prepared as a release candidate; nothing is tagged or published until the owner says so ([RELEASE-CHECKLIST-U30.md](RELEASE-CHECKLIST-U30.md)).

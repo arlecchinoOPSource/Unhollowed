@@ -43,6 +43,8 @@ async function macos() {
   check('the app icon is the repository\'s icon (src-tauri/icons/icon.icns)', existsSync(bundled) && sha256(bundled) === sha256(join(root, 'src-tauri/icons/icon.icns')), bundled);
   const notices = join(app, 'Contents', 'Resources', 'THIRD-PARTY-NOTICES.txt');
   check('the third-party notices ship inside the app and match the repository\'s', existsSync(notices) && sha256(notices) === sha256(join(root, 'THIRD-PARTY-NOTICES.txt')), notices);
+  const licence = join(app, 'Contents', 'Resources', 'LICENSE');
+  check('the MIT licence ships inside the app and matches the repository\'s', existsSync(licence) && sha256(licence) === sha256(join(root, 'LICENSE')), licence);
   const exe = join(app, 'Contents', 'MacOS', 'unhollowed');
   const archs = sh('lipo', ['-archs', exe]).stdout.trim().split(/\s+/).sort().join(' ');
   check(universal ? 'universal binary (arm64 and x86_64)' : `binary architecture: ${archs}`, universal ? archs === 'arm64 x86_64' : archs.length > 0, archs);
@@ -113,7 +115,7 @@ async function windows() {
   // Data that already exists (as if the standalone apps had been used) must survive everything below.
   const existed = MODULE_FOLDERS.map(f => existsSync(join(roamingRoot, f)));
   const sentinel = MODULE_FOLDERS.map(f => { const dir = join(roamingRoot, f); mkdirSync(dir, { recursive: true }); const file = join(dir, 'sentinel.txt'); writeFileSync(file, 'kept'); return file; });
-  check('the third-party notices were installed beside the program', existsSync(join(installDir, 'THIRD-PARTY-NOTICES.txt')), installDir);
+  check('the third-party notices and the MIT licence were installed beside the program', existsSync(join(installDir, 'THIRD-PARTY-NOTICES.txt')) && existsSync(join(installDir, 'LICENSE')), installDir);
   const ran = await launch(exe, {});
   check('the installed app starts and stays running', ran.stillRunning, `exited with ${ran.exited}`);
   const roaming = readdirSync(roamingRoot);

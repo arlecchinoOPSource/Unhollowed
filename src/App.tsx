@@ -107,7 +107,7 @@ export function App() {
     }
     if (!result.flushed) {
       update(r => rackModel.fail(r, name)); // error: still mounted, nothing lost; the owner decides below
-      setUnsaved(current => ({ ...current, [name]: current[name] ?? 'It did not confirm that it saved.' }));
+      setUnsaved(current => ({ ...current, [name]: current[name] ?? 'Nothing was closed: it is still open, with its unsaved changes.' }));
       return result;
     }
     // Saved: the interface retracts into its projector (it stayed on stage, unchanged, while the save ran), then it is hidden;
